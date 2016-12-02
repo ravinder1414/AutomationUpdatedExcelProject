@@ -3,23 +3,19 @@ package automationFramework;
 import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.Toolkit;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.net.InetAddress;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 import javax.imageio.ImageIO;
 
@@ -29,57 +25,84 @@ import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.OutputType;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.ie.InternetExplorerDriver;
-import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 
-import com.google.common.collect.Table.Cell;
+import com.automation.testcomplete.TestCompleteBean;
 
-import utility.BrowserFactory;
 import utility.Constant;
 import utility.Log;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.util.ArrayList;
-import java.util.Arrays;
-
 public class KeywordLibrary {
-	static XSSFSheet ws;
-	//static int j = 1;
 	static int screenshotflag = 1;
 	static int devFlag;
 	static int initscreen = 2;
-	
-	
+	static String strLog; 
+	// Execute test actions in one step
 	public static void ReadTest(LocalTC Vars) throws Exception{
 		if(Vars.getTestStep() !="")
-		{   String TC = Vars.getTestStep();
-			String Ex = Vars.getExpected();
-			String steps[] = TC.split("\\n");
-			String expected[] = Ex.split("\\n");
-			String ActualResult = "";
-			//String Status = "Failed";
-			System.out.println("KeywordLibrary.ReadTest - Test  step ID :: "+ Vars.getTestStepID());
-			for (int i=0; i<steps.length;i++){  //loop to all steps in a cell 
-				System.out.println("KeywordLibrary.ReadTest - Test Step :: " + Vars.getTestStepID() + "-" + i + " " + steps[i]);
-				Vars.sTestStep = steps[i];
-				Vars.Translate.FindKeyword(Vars, steps[i]);
-				KeywordAction.CallAction(Vars);
-				//if expected steps and test steps are equal
-				//that suggest that we have one expected for each step
-				if (expected.length==steps.length){  
-					if (expected[i] != "") {         
-						System.out.println("KeywordLibrary.ReadTest - Test Expected :: "+expected[i]);
-						Vars.sTestStep = expected[i];
-						Vars.Translate.FindKeyword(Vars, Vars.getTestStep());
-						Vars.Translate.FindKeyword(Vars, expected[i]);
-						KeywordAction.CallAction(Vars);
-						ActualResult = ActualResult + Vars.getExecutionResult();
+		{   
+			String TC = Vars.getTestStep();   //Store steps from Local TC to a local variable
+			String Ex = Vars.getExpected();   // Store Expected from Local TC to a local variable
+			String steps[] = TC.split("\\n");  //split the steps to get all action in one step
+			String expected[] = Ex.split("\\n");  //split the expected steps to get all action in one step
+			Vars.act = 0;  //Reset action counter to 0 that tells the report the action count with in step
+			Vars.setActualResult("");  // Reset Actual result of the test step 
+			if (Vars.fscreenlock > 0 && Vars.fscreenlock != 100)
+			{
+				Vars.robot.keyPress(KeyEvent.VK_PRINTSCREEN);
+				Vars.robot.keyRelease(KeyEvent.VK_PRINTSCREEN);
+				//Vars.robot.keyPress(KeyEvent.VK_TAB);
+				//Vars.robot.keyRelease(KeyEvent.VK_ALT);
+				Vars.robot.mouseMove(1, 1); //Keeping system alive so it does not gets locked
+			}
+			if(Vars.getSampleData() != null && ! (Vars.getSampleData().contains("null"))){
+				if(steps[0].toLowerCase().contains(Constant.RunTest_Case) || steps[0].toLowerCase().contains(Constant.RunTestCase) )
+					Vars.RunTestCase = Vars.getSampleData();
+				else
+					if(Vars.getSampleData().contains("dt_"))
+					{
+						Vars.TestData.setExcelFile(Constant.Path_TestData, Vars.getSampleData().replace("dt_", ""));
+						Vars.setObj(Vars.TestData.getRowCount()+"");
+						KeywordAction.loop(Vars);
+						Vars.loopcount[Vars.loopsize-1] = Vars.TestData.getRowCount()-1;
+						Vars.setTestdata(Vars.getSampleData());
+					}
+				if(Vars.getSampleData().contains("dt_") && Vars.loopflag == 0)
+				{
+					Vars.TestData.setExcelFile(Constant.Path_TestData, Vars.getSampleData().replace("dt_", ""));
+					Vars.sTestStep = "Loop " + Vars.TestData.getRowCount() + " times";
+					execsteps(Vars,Vars.sTestStep,Vars.getSampleData());
+				}
+			}
+			Log.info("KeywordLibrary.ReadTest - Test  step ID :: "+ Vars.getTestStepID());
+			for (int i=0; i<steps.length;i++){  //loop to all actions in a step
+				Vars.sTestStep = steps[i].trim();
+				if (Vars.sTestStep  == null)
+					Vars.sTestStep="";
+				if (! Vars.sTestStep.trim().equalsIgnoreCase(""))
+				{
+					strLog = "KeywordLibrary.ReadTest - Test Step :: " + Vars.sTestStep;
+					//Log.info("KeywordLibrary.ReadTest - Test Step :: " + Vars.getTestCaseID() + "-" + Vars.row + "_" + Vars.getTestStepID() + "-" + Vars.act + " " + steps[i]); //Print test action
+					execsteps(Vars,Vars.sTestStep,Vars.getTestdata());
+					if (expected.length==steps.length){
+						if(expected[i].startsWith("null"))
+							expected[i]="";
+						if (! expected[i].trim().equalsIgnoreCase("")) {  
+							strLog="KeywordLibrary.ReadTest - Test Expected :: " + expected[i];
+							//Log.info("KeywordLibrary.ReadTest - Test Expected :: " + Vars.getTestCaseID() + "-" + Vars.row + "_" + Vars.getTestStepID() + "-" + Vars.act + " " + expected[i]);
+							Vars.sTestStep = expected[i];
+							execsteps(Vars,Vars.sTestStep,Vars.getTestdata());
+							//Vars.setActualResult(Vars.getActualResult() + Vars.ExecutionResult + ";");
+							if (Vars.ExecutionStatus.equals("Failed") && (Vars.TestCaseStatus.equals("Passed") || Vars.TestCaseStatus.equals("Blocked")))
+								Vars.TestCaseStatus = "Failed";
+							else if (Vars.ExecutionStatus.equals("Blocked") && (Vars.TestCaseStatus.equals("Passed")))
+								Vars.TestCaseStatus = "Blocked";
+							else if (Vars.ExecutionStatus.equals("Skipped") && (Vars.TestCaseStatus.equals("Failed") || Vars.TestCaseStatus.equals("Blocked")))
+								Vars.TestCaseStatus = "Passed";
+							else if (Vars.ExecutionStatus.equals("Caution") && (Vars.TestCaseStatus.equals("Failed") || Vars.TestCaseStatus.equals("Blocked")))
+								Vars.TestCaseStatus = "Passed";
+						}
 					}
 				}
 			}
@@ -87,86 +110,169 @@ public class KeywordLibrary {
 			// that suggest that expected steps to be executed after completion of all steps
 			if (expected.length!=steps.length){  
 				for (int i=0; i<expected.length;i++){ 
-					if (expected[i] != "") {
-						System.out.println("KeywordLibrary.ReadTest - Test expected :: "+expected[i]);
+					if(expected[i].startsWith("null"))
+						expected[i]="";
+					if (! expected[i].trim().equalsIgnoreCase("")) {
+						Log.info("KeywordLibrary.ReadTest - Test expected :: " + Vars.getTestStepID() + "_" + Vars.row  + "-" + Vars.act + " " +expected[i]);
 						Vars.sTestStep = expected[i];
-						Vars.Translate.FindKeyword(Vars, Vars.getTestStep());
-						//Translate.FindKeyword(Vars, Vars.getTestStep());
-						KeywordAction.CallAction(Vars);
-						ActualResult = ActualResult + Vars.getExecutionResult();
+						execsteps(Vars,expected[i],Vars.getTestdata());
+						//Vars.setActualResult(Vars.getActualResult() + Vars.ExecutionResult + ";");
+						if (Vars.ExecutionStatus.equals("Failed") && (Vars.TestCaseStatus.equals("Passed") || Vars.TestCaseStatus.equals("Blocked")))
+							Vars.TestCaseStatus = "Failed";
+						else if (Vars.ExecutionStatus.equals("Blocked") && (Vars.TestCaseStatus.equals("Passed")))
+							Vars.TestCaseStatus = "Blocked";
+						else if (Vars.ExecutionStatus.equals("Skipped") && (Vars.TestCaseStatus.equals("Failed") || Vars.TestCaseStatus.equals("Blocked")))
+							Vars.TestCaseStatus = "Passed";
+						else if (Vars.ExecutionStatus.equals("Caution") && (Vars.TestCaseStatus.equals("Failed") || Vars.TestCaseStatus.equals("Blocked")))
+							Vars.TestCaseStatus = "Passed";
 					}
 				}
 			}
-			updateExcellSheet(Constant.Vars);
-		}
-	}
-	
-	/*********************************************************************************************************
-	 * Function:CreateReport
-	 * Description: This function is used for setup a report variable so that report can be generated 
-	 /*********************************************************************************************************** 
-	 * @return 
-	 * @throws IOException 
-	 */
-	public static void CreateReport(LocalTC Vars,String Type) throws IOException{
-		Date cur_dt = new Date();
-		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-		String strTimeStamp = dateFormat.format(cur_dt);
-		//String[] dateArray = strTimeStamp.split("-");
-		//int today = Integer.parseInt(dateArray[2]);
-		String rp = Constant.tempTestReportPath;
-		if (Type=="s"){
-			if (!rp.endsWith("\\")) { // checks whether the path ends with
-				// '/'
-				rp = rp + "\\";
-			}
-			Vars.setstrResultPath(rp + "Detail");
-			String htmlname1 = rp + "Summary" + "Test_Suite_" + Vars.getTestSetID() + "_" + strTimeStamp + ".html";
-			System.out.println("Summary HTML report path set as " + Vars.getstrResultPath() + " and Report file name : " + htmlname1);
-			File f = new File(Vars.getstrResultPath());
-			if (Vars.getstrResultPath() != f.getAbsolutePath().toString()) {
-				System.out.println("Report will be printed in the following path since THE REPORT PATH WAS NOT GIVEN / THE GIVEN PATH IS INCORRECT.");
-				Log.info("WARNING :Report will be printed in the following path since THE REPORT PATH WAS NOT GIVEN / THE GIVEN PATH IS INCORRECT." );
-				System.out.println(f.getAbsolutePath().toString());
-			}
-			//f.mkdirs();
-			Vars.bw1 = new BufferedWriter(new FileWriter(htmlname1));
-			Vars.bw1.write("<HTML><BODY><TABLE BORDER=0 CELLPADDING=3 CELLSPACING=1 WIDTH=100%>");
-			Vars.bw1.write("<TABLE BORDER=0 BGCOLOR=BLACK CELLPADDING=3 CELLSPACING=1 WIDTH=100%>");
-			Vars.bw1.write("<TR><TD COLSPAN=6 BGCOLOR=#66699><FONT FACE=VERDANA COLOR=WHITE SIZE=2><B>Testcase Name</B></FONT></TD><TD BGCOLOR=#66699 WIDTH=27%><FONT FACE=VERDANA COLOR=WHITE SIZE=2><B>Status</B></FONT></TD></TR>");
-			//Vars.bw1.close();
-		}
-		else{
-			//setup report folder
-			//Vars.setstrResultPath(Vars.getstrResultPath() +"\\"+Vars.getTestCaseID() +"\\");
-			//setup detail report 
-			Vars.setDetailReport(".\\Detail\\" + Vars.getTestCaseID()+ "\\" + strTimeStamp + ".html");
-			//setup folder to store screen shots
-			Vars.setScreenShotReport(Vars.getstrResultPath() +"\\"+Vars.getTestCaseID() +"\\");
-			File f = new File(Vars.getstrResultPath() +"\\"+Vars.getTestCaseID() +"\\");
-			f.mkdirs();
-			Vars.bw = new BufferedWriter(new FileWriter(Vars.getstrResultPath() +"\\"+Vars.getTestCaseID() +"\\" + strTimeStamp + ".html"));
-			Vars.bw.write("<HTML><BODY><TABLE BORDER=0 CELLPADDING=3 CELLSPACING=1 WIDTH=100%>");
-			Vars.bw.write("<TABLE BORDER=0 BGCOLOR=BLACK CELLPADDING=3 CELLSPACING=1 WIDTH=100%>");
-			Vars.bw.write("<TR><TD BGCOLOR=#66699 WIDTH=27%>"
-					+ "<FONT FACE=VERDANA COLOR=WHITE SIZE=2><B>Test Case Name:</B></FONT></TD>"
-					+ "<TD COLSPAN=6 BGCOLOR=#66699><FONT FACE=VERDANA COLOR=WHITE SIZE=2><B>"
-					+"<a href=\"file:///"+Vars.getScreenShotReport()+"\">"+ Vars.getTestCaseID() + "</a>"+"</B></FONT></TD></TR>");
-			Vars.bw.write("<HTML><BODY><TABLE BORDER=1 CELLPADDING=3 CELLSPACING=1 WIDTH=100%>");
-			Vars.bw.write("<TR COLS=7><TD BGCOLOR=#FFCC99 WIDTH=3%><FONT FACE=VERDANA COLOR=BLACK SIZE=2><B>Test StepID</B></FONT></TD>"
-					+ "<TD BGCOLOR=#FFCC99  WIDTH=3%><FONT FACE=VERDANA COLOR=BLACK SIZE=2><B>Action</B></FONT></TD>"
-					+ "<TD BGCOLOR=#FFCC99 WIDTH=20% ><FONT FACE=VERDANA COLOR=BLACK SIZE=2><B>Object</B></FONT></TD>"
-					+ "<TD BGCOLOR=#FFCC99  WIDTH=23%><FONT FACE=VERDANA COLOR=BLACK SIZE=2><B>Event</B></FONT></TD>"
-					+ "<TD BGCOLOR=#FFCC99 WIDTH=21%><FONT FACE=VERDANA COLOR=BLACK SIZE=2><B>Test Step</B></FONT></TD>"
-					+ "<TD BGCOLOR=#FFCC99 WIDTH=25%><FONT FACE=VERDANA COLOR=BLACK SIZE=2><B>Execution Time</B></FONT></TD>"
-					+ "<TD BGCOLOR=#FFCC99 WIDTH=5%><FONT FACE=VERDANA COLOR=BLACK SIZE=2><B>Status</B></FONT></TD>");
-			//Vars.bw.close();
 		}
 	}
 
-	public static void Endreport(LocalTC Vars) throws IOException{
-		Vars.bw.close();  // Write all the buffer data to detail report 
-		Vars.bw1.close(); // Write all the buffer data to summary report
+	/************************
+	 * Function   : execsteps 
+	 * Description: This function used to execute current step loaded in to Vars
+	 * @param Vars
+	 * @throws Exception 
+	 */
+	public static void execsteps(LocalTC Vars,String step,String TestData) throws Exception{
+		try{
+			if(Vars.loopflag == 1 &&  ! step.contains("loop") && (Vars.runtestloopflag > 1 || Vars.runtestloopflag == 0)){
+				Vars.loopTestCases = Arrays.copyOf(Vars.loopTestCases, (Vars.startrow+1));
+				Vars.loopTestStepID = Arrays.copyOf(Vars.loopTestStepID, (Vars.startrow+1));
+				Vars.loopTestCases[Vars.startrow] = step;
+				Vars.loopTestStepID[Vars.startrow++] = Vars.TestStepID + "_" + Vars.row + "-" + Vars.startrow ;
+				Vars.act = Vars.startrow +1;
+				Log.info(Vars.getTestCaseID() + "-" + Vars.row + "_" + Vars.getTestStepID() + "-" + Vars.startrow + " " + strLog.replace("endloop", step) ); //Print test action
+				Log.info("Inside loop adding steps to execution stack #" + (Vars.startrow-1) + " loop number # " + (Vars.loopnum+1));
+			}
+			else{
+				//check if this step is with in the condition block if yes and condition is been set to skip  
+				if(Vars.conditionSkip == false)
+				{
+					strLog = "KeywordLibrary.ReadTest - Test Step :: " + step;
+					Log.info(Vars.getTestCaseID() + "-" + Vars.row + "_" + Vars.getTestStepID() + "-" + Vars.act + " " + strLog.replace("endloop", step) );
+					//Vars.setTestdata(TestData);
+					Vars.act++;
+					Vars.Translate.FindKeyword(Vars, step);
+					Vars.setbFlagSpell(false);
+					if (Vars.fscreenlock == 100) {
+						TestCompleteBean testCompleteObj = new TestCompleteBean();
+						testCompleteObj.setAction(Vars.Action);
+						testCompleteObj.setExecutionResult("");
+						testCompleteObj.setEvent(Vars.Event);
+						testCompleteObj.setObj(Vars.Obj);
+						if(Vars.sTestStep.contains("obj=") && !Vars.ObjProp.isEmpty()){
+							testCompleteObj.setObjProp(Vars.obj.getValueObjProp(Vars.ObjProp));	
+						}else if(!Vars.ObjProp.isEmpty()){
+							testCompleteObj.setObjProp(Vars.ObjProp);
+						}
+						testCompleteObj.setStatus("");
+						testCompleteObj.setTestCaseId(Integer.toString(Vars.iTestCaseID));
+						testCompleteObj.setTestCaseName(Vars.TestCaseName);
+						testCompleteObj.setTestdata(Vars.Testdata);
+						testCompleteObj.setTestSetName(Vars.TestSetName);
+						testCompleteObj.setTestStep(Vars.sTestStep);
+						testCompleteObj.setTestStepID(Integer.toString(Vars.TestStepID));
+						testCompleteObj.setExecutionTime("");
+						testCompleteObj.setScreenshotPath("");
+						testCompleteObj.setReportStatus("");
+						testCompleteObj.setAct(Vars.act);
+						testCompleteObj.setTestSetId(Integer.toString(Vars.getTestSetID()));
+						Vars.getTestCompleteList().add(testCompleteObj);
+						
+					} else {
+						KeywordAction.CallAction(Vars);
+						if (!Vars.isRunTestCaseFlag())
+							setReportVariables(Vars);
+						Vars.setRunTestCaseFlag(false);
+						if (Vars.ExecutionStatus.equals("Failed")
+								&& (Vars.TestCaseStatus.equals("Passed") || Vars.TestCaseStatus.equals("Blocked")))
+							Vars.TestCaseStatus = "Failed";
+						else if (Vars.ExecutionStatus.equals("Blocked") && (Vars.TestCaseStatus.equals("Passed")))
+							Vars.TestCaseStatus = "Blocked";
+						else if (Vars.ExecutionStatus.equals("Skipped")
+								&& (Vars.TestCaseStatus.equals("Failed") || Vars.TestCaseStatus.equals("Blocked")))
+							Vars.TestCaseStatus = "Passed";
+						else if (Vars.ExecutionStatus.equals("Caution")
+								&& (Vars.TestCaseStatus.equals("Failed") || Vars.TestCaseStatus.equals("Blocked")))
+							Vars.TestCaseStatus = "Passed";
+						Vars.setActualResult(Vars.getActualResult() + Vars.ExecutionResult + ";");
+						Log.info(Vars.ExecutionStatus + ":" + Vars.ExecutionResult);
+					}
+					//if expected steps and test steps are equal
+					//that suggest that we have one expected for each step	
+				} else {
+					if ((step.contains(Constant.End_Condition) || step.contains(Constant.Endcondition)))
+						Vars.conditionSkip = false;
+					else{
+						Log.info("Skipped : " + step);
+						//vars.setExecutionStatus("Skipped");
+						Vars.setExecutionStatus(Constant.Passed);
+						Vars.setExecutionResult("Step has been skipped");
+					}
+				}
+				if (Vars.captureperform == true) {
+					if (Vars.fscreenlock != 100) {
+						screenShot(Vars);
+					}
+				}
+			}
+		}
+		catch(Exception e){
+			Log.info(e.getMessage());
+		}
+	}
+
+	public static void execloopsteps(LocalTC Vars,int start,int end,int count) throws Exception{
+		for (Vars.loopcnt[Vars.loopnum]=0;Vars.loopcnt[Vars.loopnum]<count;Vars.loopcnt[Vars.loopnum]++){
+			for (int i=start; i<=end;i++)
+			{
+				if(Vars.loopsize > 1){
+					if(Vars.loopstart[Vars.loopnum] < Vars.loopend[Vars.loopnum-1]){
+					Vars.loopnum++;
+					Vars.loopsize--;
+					Vars.TestData.setExcelFile(Constant.Path_TestData, Vars.loopTestData[Vars.loopsize]);
+					execloopsteps(Vars,Vars.loopstart[Vars.loopnum],Vars.loopend[Vars.loopnum],Vars.loopcount[Vars.loopnum]);
+					}
+					else{
+						Vars.sTestStep = Vars.loopTestCases[i];
+						execsteps(Vars,Vars.sTestStep,Vars.loopTestData[Vars.loopnum]);
+					}
+				}
+				else{
+					Vars.sTestStep = Vars.loopTestCases[i];
+					execsteps(Vars,Vars.sTestStep,Vars.loopTestData[Vars.loopnum]);
+				}
+			}
+		}
+	}
+	
+	public static void execTestCaseloopsteps(LocalTC Vars,int start,int end,int count) throws Exception{
+		for (Vars.loopcnt[Vars.loopnum]=0;Vars.loopcnt[Vars.loopnum]<count;Vars.loopcnt[Vars.loopnum]++){
+			for (int i=start; i<=end;i++)
+			{
+				if(Vars.loopsize > 1){
+					if(Vars.loopstart[Vars.loopnum] < Vars.loopend[Vars.loopnum-1]){
+					Vars.loopnum++;
+					Vars.loopsize--;
+					Vars.TestData.setExcelFile(Constant.Path_TestData, Vars.loopTestData[Vars.loopsize]);
+					execloopsteps(Vars,Vars.loopstart[Vars.loopnum],Vars.loopend[Vars.loopnum],Vars.loopcount[Vars.loopnum]);
+					}
+					else{
+						Vars.sTestStep = Vars.loopTestCases[i];
+						execsteps(Vars,Vars.sTestStep,Vars.loopTestData[Vars.loopnum]);
+					}
+				}
+				else{
+					Vars.sTestStep = Vars.loopTestCases[i];
+					execsteps(Vars,Vars.sTestStep,Vars.loopTestData[Vars.loopnum]);
+				}
+			}
+		}
+		Vars.loopnum--;
 	}
 
 	/*********************************************************************************************************
@@ -174,54 +280,36 @@ public class KeywordLibrary {
 	 * Description: This function is used to create connection with DataBase
 	 /*********************************************************************************************************** 
 	 */
-	protected static String createConnection(LocalTC Vars, String database, String schemaName, String username,String password) 
+	protected static String createConnection(LocalTC Vars) 
 	{
-		System.out.println(" I am in createconnection");
+		Log.info(" I am in createconnection");
 		String url1=null;
 		try {
-			if(database.equalsIgnoreCase("mysql")){
-				String hostadd=  Vars.host_name.trim();
-				InetAddress ipaddr =InetAddress.getByName(Vars.Varshost_name.trim());
+			if(Vars.database.equalsIgnoreCase("mysql")){
+				//String hostadd=  Vars.host_name.trim();
+				//InetAddress ipaddr =InetAddress.getByName(Vars.Varshost_name.trim());
 				Class.forName("com.mysql.jdbc.Driver");
-				String url = "jdbc:mysql://"+Vars.Varshost_name+":"+Vars.portnumber+"/"+schemaName;
-				if (Vars.captureperform == true) {
-					screenShot(Vars);//Vars.getTestCaseID(), Vars.getTestStepID(), Vars.getTestCaseName());
-				}
+				String url = "jdbc:mysql://"+Vars.Varshost_name+":"+Vars.portnumber+"/"+Vars.schemaname;
 				return url;
 			}
-			else if(database.equalsIgnoreCase("mssql")){
+			else if(Vars.database.equalsIgnoreCase("mssql")){
 				Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 				url1 = "jdbc:sqlserver://";
-				String hostname =Vars.host_name;
-				String db = "databasename="+schemaName;
-				String user = "user="+username;
-				String pass  ="password="+password;
+				String db = "databasename="+Vars.schemaname;
+				String user = "user="+Vars.username;
+				String pass  ="password="+Vars.password;
 				String url =url1+Vars.host_name+";"+db+";"+user+";"+pass+";";
+				Vars.con = DriverManager.getConnection(url);
 				return url;
 			}
 			else{
-				System.out.println(database+" is not handeled as database in this version of  framework");
+				Log.info(Vars.database+" is not handeled as database in this version of  framework");
 				Log.info("This framework in not handeled database ");
-				//if (captureperform == true) {
-				screenShot(Vars);
-				//}
 				return url1;
 			}
 		} catch (Exception e) {
-			try {
-				Log.info("It is invalidConnection ");
-				//if (captureperform == true) {
-				screenShot(Vars);
-				//}
-			} catch (IOException e1) {
-				System.out.println("Invalid Connection  "+e1.getMessage());
-				Log.info( "Invalid Connection  "+e1.getMessage());
-
-			} catch (Exception e2) {
-				System.out.println("Error Occured in update_Report Function "+e2.getMessage());
-				Log.info("Error Occured in update_Report Function "+e2.getMessage());
+				Log.info("Error Occured in update_Report Function "+e.getMessage());
 			}
-		} 
 		return url1;
 	}
 
@@ -230,25 +318,27 @@ public class KeywordLibrary {
 	/**************************************************************************************************************
 	 * Function=executeQuery
 	 * Description=This function is used executeQuery from data base
-	 /****************************************************************************************************************
+	 /
+	 * @throws IOException ****************************************************************************************************************
 	 */
 
-	protected static void executeQuery(ResultSet rs){
+	protected static void executeQuery(ResultSet rs) throws IOException{
 		String resultfile =null;
 		File file = new File("Temp");
-		boolean result=false; 
+		boolean result=false;
+		FileOutputStream fileOut = null;
+		FileOutputStream fo = null;
+		XSSFWorkbook workbook = null;
 		if(!file.exists()){
-			System.out.println("Creating Directory - "+file);;
+			Log.info("Creating Directory - " + file);;
 			try{
 				file.mkdir();
 				result = true;
 			}catch(SecurityException se){
-				System.out.println(se.getMessage());
-				Log.info("SecurityException Error Occured in executeQuery  "+se.getMessage());
+				Log.info("SecurityException Error Occured in executeQuery  " + se.getMessage());
 			}
 		}
 		if(result){
-			System.out.println("Direcotry is already Created");
 			Log.info("Direcotry is already Created");
 		}
 		String workingDir = System.getProperty("user.dir");
@@ -258,17 +348,18 @@ public class KeywordLibrary {
 		String filepath=workingDir+"\\"+"Temp"+"\\"+CurrentDate+"."+"xlsx";
 		resultfile = filepath;
 		String SheetName ="dbData";
+		XSSFSheet ws; 
 		try {
-			FileOutputStream fo = new FileOutputStream(filepath);
-			XSSFWorkbook workbook = new XSSFWorkbook(); 
+			fo = new FileOutputStream(filepath);
+			workbook = new XSSFWorkbook(); 
 			ws = workbook.createSheet(SheetName);
 			FormulaEvaluator wbevaluator = workbook.getCreationHelper().createFormulaEvaluator();
 			//if(update.equalsIgnoreCase("yes")){
 			wbevaluator.evaluateAll();
 			//}
 			if (!resultfile.endsWith(".xlsx")){
-				System.out.println("Please correct Excel file extension, Data can be exported to only .xlsx file");
-				System.out.println("nofetchdata");
+				Log.info("Please correct Excel file extension, Data can be exported to only .xlsx file");
+				Log.info("nofetchdata");
 			}else{
 				rs.beforeFirst(); 
 				XSSFCell cell =null;
@@ -298,21 +389,28 @@ public class KeywordLibrary {
 					tempj++;
 				}
 				try {
-					FileOutputStream fileOut = new FileOutputStream(filepath);
+					fileOut = new FileOutputStream(filepath);
 					workbook.write(fileOut);
 					workbook.close();
 					fo.close();
 				} catch (IOException e) {
 					Log.info("IO Exception Occured in executeQuery -  while Writing data into Excel"+e.getMessage());
-					System.out.println("IO Exception Occured, while Writing data into Excel "+e);
+				}finally {
+					if(null != fileOut){
+						fileOut.close();
+					}
 				}
 			}	
 		} catch (SQLException e) {
-			System.out.println(" SQLException occured in connection with DB, check your credentials are correct "+e);
 			Log.info(" SQLException occured in executeQuery -  while connection with DB, check your credentials are correct "+e.getMessage());
 		} catch (IOException e) {
-			System.out.println("IO exception occured in executeQuery function  "+e.getMessage());
 			Log.info("IO Exception Occured in executeQuery -   "+e.getMessage());
+		}finally {
+			if(null != fo){
+				fo.close();
+			}if(workbook != null){
+				workbook.close();
+			}
 		}
 	}
 
@@ -326,76 +424,73 @@ public class KeywordLibrary {
 
 	public static  void screenShot(LocalTC Vars) throws Exception {
 		try {
-			int loopn =	Vars.getTestCaseID();
+			if(Vars.getScreenTestCaseID() != Vars.getTestCaseID()){
+				Vars.setScreenTestCaseID(Vars.getTestCaseID());
+				Vars.setScreenShotReport(null);
+			}
+			//int loopn =	Vars.getTestCaseID();
 			int initscreenFlag = 1;
-			int rown = Vars.getTestStepID();
-			String Sname = Vars.getTestCaseName();
-			RemoteWebDriver driver = (RemoteWebDriver) BrowserFactory.getBrowser(Vars);
+			String rown = Vars.getTestStepID() + "-" + Vars.row + "-" + Vars.act;
+			String Sname = Vars.getTestCaseName().replaceAll("[|?\\/*:<>]", " ").trim();
+			//if (!( Vars.getObj() != "alert" || Vars.getObj() != "dialog"))
+			RemoteWebDriver driver = (RemoteWebDriver) Constant.driver;
 			if (devFlag == 0) {
 				screenshotflag = screenshotflag + 1;
 				DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd-HH-mm-ss");
 				Date date = new Date();
-				String filenamer = "";
 				String strTime = dateFormat.format(date);
 				if(Sname.contains("-"))
-				Sname = Sname.substring(0, Sname.indexOf("-")).trim();
+					Sname = Sname.substring(0, Sname.indexOf("-")).trim();
 				else if(Sname.contains("."))
 					Sname = Sname.substring(0, Sname.indexOf(".")).trim();
-				String ScreenFolder = Sname;
-				String screenReport = Constant.Path_ScreenShot;
-				String ScreenshotPath = screenReport  + Sname;
+				//String ScreenFolder = Sname;
+				//String screenReport = "";// = Constant.Path_ScreenShot;
+				//String ScreenshotPath = "";// = screenReport  + Sname;
 
-
-				screenReport = screenReport.toLowerCase();
-
-				if (screenReport == "") {
-					screenReport = Constant.tempTestReportPath;
+				if(null != Vars.getScreenShotReport())
+					Vars.setScreenShotReport(Vars.getScreenShotReport().toLowerCase());
+				if (null == Vars.getScreenShotReport()) {
+					Vars.setScreenShotReport(Constant.Path_ScreenShot);
 					initscreenFlag = 2;
 				}
-
-				if (!screenReport.endsWith("\\")) {
-					screenReport = screenReport + "\\";
-
+				if (Vars.getScreenShotReport().endsWith("\\") && !Vars.getScreenShotReport().contains(Vars.getScreenshotTimeStamp())) {
+					Vars.setScreenShotReport(Vars.getScreenShotReport() + Vars.getScreenshotTimeStamp() + "\\");
+					//Vars.setScreenShotReport(Vars.getScreenShotReport() + "\\" + Vars.getScreenshotTimeStamp() + "\\" + Vars.getScreenTestCaseID() + "\\");
 				}
-				if (!(screenReport.contains("screen"))) {
-					screenReport = screenReport + "Screenshot\\";
-
+				if (!Vars.getScreenShotReport().endsWith("\\") && !Vars.getScreenShotReport().contains(Vars.getScreenshotTimeStamp())) {
+					Vars.setScreenShotReport(Vars.getScreenShotReport() + "\\" + Vars.getScreenshotTimeStamp() + "\\");
+					//Vars.setScreenShotReport(Vars.getScreenShotReport() + "\\" + Vars.getScreenshotTimeStamp() + "\\" + Vars.getScreenTestCaseID() + "\\");
+				}
+				if (!(Vars.getScreenShotReport().contains("screen"))) {
+					Vars.setScreenShotReport(Vars.getScreenShotReport() + "Screenshot\\");
 				}
 				initscreen = initscreen + 1;
 				if (initscreen == 2 && initscreenFlag == 2) {
-					System.out.println("Screenshots will be captured in the following path since the SCREENSHOTS PATH IS NOT GIVEN." + screenReport);
-					Log.info("Screenshots will be captured in the following path since the SCREENSHOTS PATH IS NOT GIVEN    " + screenReport  );
+					Log.info("Screenshots will be captured in the following path since the SCREENSHOTS PATH IS NOT GIVEN    " + Vars.getScreenShotReport()  );
 				}
 
 				else {
 					if (initscreen == 2) {
-						File f1s = new File(screenReport);
-						if (!screenReport.substring(0,screenReport.length() - 1).
+						File f1s = new File(Vars.getScreenShotReport());
+						if (!Vars.getScreenShotReport().substring(0,Vars.getScreenShotReport().length() - 1).
 								equalsIgnoreCase(f1s.getAbsolutePath().toString()))
-
 						{
-							System.out.println("Screenshots will be captured in the following path since the given SCREENSHOTS PATH IS NOT AVAILABLE.");
 							Log.info("Screenshots will be captured in the following path since the given SCREENSHOTS PATH IS NOT AVAILABLE   " +f1s.getAbsolutePath().toString() );
-							System.out.println(f1s.getAbsolutePath().toString());
-
 						}
 						f1s.delete();
 					}
 				}
-				filenamer = screenReport + Sname + "\\" + Sname + "_"
-						+ screenshotflag + "_rowno_" + Vars.row + "_"
+				Vars.filenamer = Vars.getScreenShotReport() + Sname + "_"
+						+ screenshotflag + "_rowno_" + rown + "_"
 						+ strTime + ".png";
-
-
 				if (Vars.getScreenshotTypeFlag() == 0) {
 					File screenshot = driver.getScreenshotAs(OutputType.FILE);
-					FileUtils.copyFile(screenshot, new File(filenamer));
+					FileUtils.copyFile(screenshot, new File(Vars.filenamer));
 
 				} else {
-
 					BufferedImage image = new Robot().createScreenCapture(new Rectangle(Toolkit
 							.getDefaultToolkit().getScreenSize()));
-					File outputfile = new File(filenamer);
+					File outputfile = new File(Vars.filenamer);
 					outputfile.mkdirs();
 					ImageIO.write(image, "png", outputfile);
 					Thread.sleep(3000);
@@ -406,11 +501,10 @@ public class KeywordLibrary {
 			}
 		}
 		catch (Exception e) {
-			System.out.println("Screenshot was not printed. Check the file path");
-			Log.info("Screenshot was not printed. Check the file path");
+			Log.info("Screenshot was not printed. Check the file path " + e.getMessage());
 		}
 	}
-	
+
 	public static boolean isInteger(String input) {
 		try {
 			Integer.parseInt(input);
@@ -420,17 +514,15 @@ public class KeywordLibrary {
 			return false;
 		}
 	}
-
 	// Single Argument
 	public static void Display(String Name)
 	{
-		System.out.println(Name);
+		Log.info(Name);
 	}
-
 	// three
 	public static void Display(String Name,String Name2,String Name3)
 	{
-		System.out.println(Name+ " "+Name2+ " "+Name3+ " ");
+		Log.info(Name+ " "+Name2+ " "+Name3+ " ");
 	}
 
 	/*
@@ -448,7 +540,7 @@ public class KeywordLibrary {
 				Constant.Vars.isconnected = true;
 				return Constant.Vars.isconnected;
 			} else if (Constant.Vars.database.equalsIgnoreCase("mysql")) {
-				System.out.println("In get connection part of MSSQL");
+				Log.info("In get connection part of MSSQL");
 				Constant.Vars.con = DriverManager.getConnection(url, Constant.Vars.username, Constant.Vars.password);
 				Constant.Vars.stmt = Constant.Vars.con.createStatement();
 				Constant.Vars.rs = Constant.Vars.stmt.executeQuery(Constant.Vars.getObj());
@@ -461,83 +553,96 @@ public class KeywordLibrary {
 			Log.info(
 					"Connection to Database is failed, please verify connection URL parameters which are set in Selenium Utility File  "
 							+ e.getMessage());
-			System.out.println(
+			Log.info(
 					"Connection to Database is failed, please verify connection URL parameters which are set in Selenium Utility File  "
 							+ e.getMessage());
 			return Constant.Vars.isconnected;
 		}
 	}
-	public static void updateExcellSheet(LocalTC Vars) throws Exception{
-		if(Vars.ResultStatus.equals("Passed")){
-			Vars.setActualResult(Vars.getTestStep());
-	
-			try {
-	       
-				  FileInputStream file = new FileInputStream(Vars.sTestRunPath);
-	         
-	            XSSFWorkbook workbook = new XSSFWorkbook(file);
-	             XSSFSheet sheet = workbook.getSheet("Test Runs");
-	              XSSFCell cell = null;
-	            //Update the value of cell
-	            cell = sheet.getRow(Vars.row).getCell(9);
-	            cell.setCellValue(Vars.ResultStatus);
-	            cell = sheet.getRow(Vars.row).getCell(10);
-	            cell.setCellValue(Vars.getActualResult());
-	            Vars.getResultsStatus().add(Vars.ResultStatus);
-
-	            file.close();
-   
-       FileOutputStream outFile =new FileOutputStream(new File(Vars.sTestRunPath));
-	            workbook.write(outFile);
-	            outFile.close();
-
-	        } catch (FileNotFoundException e) {
-	            e.printStackTrace();
-	        } catch (IOException e) {
-	            e.printStackTrace();
-	        }
-			
-		}
-		
-	 else {
-			try {
-			       
-				  FileInputStream file = new FileInputStream(Vars.sTestRunPath);
-	         
-	            XSSFWorkbook workbook = new XSSFWorkbook(file);
-	             XSSFSheet sheet = workbook.getSheet("Test Runs");
-	              XSSFCell cell = null;
-	            //Update the value of cell
-	            cell = sheet.getRow(Vars.row).getCell(9);
-	            cell.setCellValue(Vars.ResultStatus);
-	            cell = sheet.getRow(Vars.row).getCell(10);
-	            cell.setCellValue(Vars.getActualResult());
-	            Vars.getResultsStatus().add(Vars.ResultStatus);
-
-	            file.close();
- 
-     FileOutputStream outFile =new FileOutputStream(new File(Vars.sTestRunPath));
-	            workbook.write(outFile);
-	            outFile.close();
-
-	        } catch (FileNotFoundException e) {
-	            e.printStackTrace();
-	        } catch (IOException e) {
-	            e.printStackTrace();
-	            
-	           
-	       }
-		}
-		
+	/**
+	 * @param Vars
+	 * Method for setting Object for the test steps, which is use to create report for test steps
+	 */
+	public static void setReportVariables(LocalTC Vars){
+		ReporterObject reporterObj = new ReporterObject();
+		reporterObj.setReporterObjectTestCaseId(Vars.getTestCaseID());
+		reporterObj.setReportObjectTestStepId(Vars.getTestStepID());
+		reporterObj.setReportTestStepID(Vars.getTestStepID() + "_" + Vars.row  + "-" + Vars.act);
+		if (!Vars.sTestStep.contains("crypted"))
+			reporterObj.setReportAction(Vars.getAction() + " " + Vars.getEvent() + " " + Vars.getTestdata());
+		else
+			reporterObj.setReportAction(Vars.getAction() + " " + Vars.getEvent());
+		reporterObj.setReportCCellData(Vars.getObj() + " " + Vars.getObjProp());
+		reporterObj.setReportDCellData(Vars.ExecutionResult);
+		reporterObj.setReportComments(Vars.sTestStep);
+		Date exec_time = new Date();
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		reporterObj.setReportStrTime(dateFormat.format(exec_time));
+		reporterObj.setReportRes_type(Vars.getRes_type());
+		reporterObj.setReportException(Vars.getExceptionVar());
+		reporterObj.setReportObjectEvent(Vars.getEvent().toLowerCase());
+		reporterObj.setReportObjectTestData(Vars.getTestdata().replace("\"", ""));
+		reporterObj.setReporterScreenFile(Vars.filenamer);
+		Vars.reporterObjectList.add(reporterObj);
 	}
-	
-	
-	
-	
+	/**
+	 * @param csvValues
+	 */
+	public static void setReportVarForTestComplete(String[] csvValues){
+		ReporterObject reporterObj = new ReporterObject();
+		if(csvValues[0].equalsIgnoreCase("null")){
+			csvValues[0] = "0";
+		}else if(csvValues[1].equalsIgnoreCase("null")){
+			csvValues[1] = "0";
+		}else if(csvValues[2].equalsIgnoreCase("null")){
+			csvValues[2] = "";
+		}else if(csvValues[3].equalsIgnoreCase("null")){
+			csvValues[3] = "";
+		}else if(csvValues[4].equalsIgnoreCase("null")){
+			csvValues[4] = "";
+		}else if(csvValues[5].equalsIgnoreCase("null")){
+			csvValues[5] = "";
+		}else if(csvValues[6].equalsIgnoreCase("null")){
+			csvValues[6] = "";
+		}else if(csvValues[7].equalsIgnoreCase("null")){
+			csvValues[7] = "";
+		}else if(csvValues[8].equalsIgnoreCase("null")){
+			csvValues[8] = "";
+		}else if(csvValues[9].equalsIgnoreCase("null")){
+			csvValues[9] = "";
+		}else if(csvValues[10].equalsIgnoreCase("null")){
+			csvValues[10] = "";
+		}else if(csvValues[11].equalsIgnoreCase("null")){
+			csvValues[11] = "";
+		}else if(csvValues[12].equalsIgnoreCase("null")){
+			csvValues[12] = "";
+		}else if(csvValues[13].equalsIgnoreCase("null")){
+			csvValues[13] = "";
+		}else if(csvValues[14].equalsIgnoreCase("null")){
+			csvValues[14] = "";
+		}else if(csvValues[15].equalsIgnoreCase("null")){
+			csvValues[15] = "";
+		}
+		reporterObj.setReporterObjectTestCaseId(Integer.parseInt(csvValues[1]));
+		reporterObj.setReportTestStepID(csvValues[2] + "_" +csvValues[16]);
+		reporterObj.setReportObjectTestStepId(Integer.parseInt(csvValues[2]));
+		if (!csvValues[2].contains("crypted"))
+			reporterObj.setReportAction(csvValues[6] + " " + csvValues[9] + " " + csvValues[10]);
+		else
+			reporterObj.setReportAction(csvValues[6] + " " + csvValues[9]);
+		reporterObj.setReportCCellData(csvValues[7] + " " + csvValues[8]);
+		reporterObj.setReportDCellData(csvValues[11]);
+		reporterObj.setReportComments(csvValues[5]);
+		reporterObj.setReportStrTime(csvValues[13]);
+		reporterObj.setReportRes_type(csvValues[15]);
+		reporterObj.setReportObjectEvent(csvValues[9].toLowerCase());
+		reporterObj.setReportObjectTestData(csvValues[10].replace("\"", ""));
+		reporterObj.setReporterScreenFile(csvValues[14]);
+		Constant.Vars.reporterObjectList.add(reporterObj);
+		Constant.Vars.ExecutionStatus = Constant.Vars.ExecutionStatus + csvValues[12] + ",";
+		Constant.Vars.setTestSetName(csvValues[3]);
+		Constant.Vars.setTestCaseName(csvValues[4]);
+		Constant.Vars.setTestCaseID(Integer.parseInt(csvValues[1]));
+		Constant.Vars.setSpiraTestSetId(Integer.parseInt(csvValues[0]));
+	}
 }
-
-
-
-
-
-

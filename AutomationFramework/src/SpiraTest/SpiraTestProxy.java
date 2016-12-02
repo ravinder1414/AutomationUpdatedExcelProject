@@ -25,7 +25,6 @@ import com.inflectra.spirateam.mylyn.core.internal.services.soap.ObjectFactory;
 import com.inflectra.spirateam.mylyn.core.internal.services.soap.RemoteFilter;
 import com.inflectra.spirateam.mylyn.core.internal.services.soap.RemoteIncident;
 import com.inflectra.spirateam.mylyn.core.internal.services.soap.RemoteSort;
-import com.inflectra.spirateam.mylyn.core.internal.services.soap.ServiceFaultMessage;
 
 public class SpiraTestProxy {
 	

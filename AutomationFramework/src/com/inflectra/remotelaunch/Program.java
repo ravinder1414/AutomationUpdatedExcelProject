@@ -6,6 +6,7 @@ import java.util.Date;
 
 import SpiraTest.SpiraReader;
 import automationFramework.LocalTC;
+import automationFramework.ReporterCommon;
 
 //import com.inflectra.remotelaunch.License.LicenseTypeEnum;
 
@@ -33,7 +34,8 @@ public class Program
 		System.out.println("========================");
 		SpiraReader SpiraRead;
 		SpiraRead = new SpiraReader();
-		SpiraRead.ExtractTestSet(Vars);
+		ReporterCommon reportCommonObj = new ReporterCommon();
+		SpiraRead.ExtractTestSet(Vars, reportCommonObj);
 		//Display the configuration settings
 		System.out.println("Server URL: " + Settings.getServerUrl());
 		System.out.println("Server Login: " + Settings.getServerLogin());
