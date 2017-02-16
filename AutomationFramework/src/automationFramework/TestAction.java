@@ -1,41 +1,12 @@
 package automationFramework;
 
 import java.io.IOException;
-
-/********************************************************************************************************
- *Project Name		: Ignite Automation framework 
- *Author		    : Bharat Sethi
- *Version	    	: V1.0
- *Date of Creation	: 04-05-2016
- *Date Last modified: 04/05/2016
- *Description       : Program to be called from command line with 6 arguments to be in the same order 	    
- *		ProjectID 	- args[0]
- *		ReleaseID 	- args[1]
- *		TestSetID 	- args[2]
- *		TestCaseID	- args[3]
- *		TestRunPath	- args[4]
- *		Integration - args[5]
- *Functions			: public static void main(String[] args) - Validates the argument count and then create a Dynamic TestNG XML 
- *					  to run the test from FrameworkDriver class 
- *1. TestAction
- *1a. Log.java
- *2. Framework Driver
- *
- * ********************************************************************************************************
- */
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.net.MalformedURLException;
 
 import org.apache.log4j.xml.DOMConfigurator;
 import org.codehaus.jettison.json.JSONException;
-import org.testng.TestNG;
-import org.testng.xml.XmlClass;
-import org.testng.xml.XmlSuite;
-import org.testng.xml.XmlTest;
 
+import utility.BrowserFactory;
 import utility.Constant;
 import utility.ExcelUtils;
 import utility.Log;
@@ -43,15 +14,14 @@ import utility.Log;
 public class TestAction {
 	/**
 	 * @param args
-	 * @throws NumberFormatException
-	 * @throws JSONException
+	 * @throws Exception 
 	 */
-	public static void main(String[] args) throws NumberFormatException, JSONException {
+	public static void main(String[] args) throws Exception {
 		String arg;
 		/*
 		 * 30 1025 "C:\\temp" 100
-		 * "C:\AutomationFramework\src\\testData\\Timesheet_Multiplecandidate_Updated.xlsx"
-		 * true ProjectId, ReleaseID, executionStartTime, testCompleteStatus,
+		 * "C:\AutomationFramework\src\\testData\\Timesheet_Multiplecandidate_Updated.xlsx" true 
+		 * ProjectId, ReleaseID, executionStartTime, testCompleteStatus,
 		 * csvFilePath, excelFilePath, integrationFlag
 		 */
 		if (args[3].equalsIgnoreCase("200")) {
@@ -91,7 +61,7 @@ public class TestAction {
 			 * variables to TestNG
 			 **************/
 			// Set Suite Name in XML
-			XmlSuite suite = new XmlSuite();
+			/*XmlSuite suite = new XmlSuite();
 			suite.setName("IgniteSuite");
 			Log.info("added xml suite");
 			// Set Test name in XML
@@ -122,17 +92,28 @@ public class TestAction {
 			myTests.add(test);
 			suite.setTests(myTests);
 
-			/************************************************************************************************************/
+			*//************************************************************************************************************//*
 			Log.info("Created a dynamic XML using parameters");
-			/****************
+			*//****************
 			 * Calling Framework to execute test for this test case
-			 ****************************************/
+			 ****************************************//*
 			List<XmlSuite> suites = new ArrayList<XmlSuite>();
 			suites.add(suite);
 			TestNG testng = new TestNG();
 			testng.setXmlSuites(suites);
 			Log.info("Starting IgniteFramework to execute test");
-			testng.run();
+			testng.run();*/
+			try {
+				FrameworkDriver.beforeSuite(args[0], args[1], args[2], args[3], args[4], args[5]);
+			} catch (MalformedURLException e) {
+				Log.error("Error occure on calling FrameworkDriver: " + e.getMessage());
+				BrowserFactory.closeAllDriver();
+				Log.info("Browser closed");
+			} catch (Exception ex) {
+				Log.error("Error occure on calling FrameworkDriver beforeSuite method: " + ex.getMessage());
+				BrowserFactory.closeAllDriver();
+				Log.info("Browser closed");
+			}
 		}
 
 		/*************************************************************************************************************/

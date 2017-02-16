@@ -121,13 +121,15 @@ public class Utils {
 		int i = 0;
 		BufferedReader br = null;
 		Process process = null;
+		String path = new File(Constant.auroCorrect)
+                .getAbsolutePath();
 		try {
 
 			if (param.equalsIgnoreCase(Constant.Keyword)) {
 				strTestStep = object.split(" ");
 
 				for (String strTestStepSplit : strTestStep) {
-					process = Runtime.getRuntime().exec(Constant.auroCorrect + " " + strTestStepSplit);
+					process = Runtime.getRuntime().exec(path + " " + strTestStepSplit);
 					br = new BufferedReader(new InputStreamReader(process.getInputStream()));
 					while ((line = br.readLine()) != null) {
 
@@ -142,7 +144,7 @@ public class Utils {
 				Log.info("Corrected Sentence: " + strTestStepSpell);
 
 			} else if (param.equalsIgnoreCase("Execute")) {
-				process = Runtime.getRuntime().exec(Constant.auroCorrect + " " + object);
+				process = Runtime.getRuntime().exec(path + " " + object);
 				br = new BufferedReader(new InputStreamReader(process.getInputStream()));
 				while ((line = br.readLine()) != null) {
 					strTestStepSpell = line;
@@ -169,6 +171,41 @@ public class Utils {
 		catch(NoAlertPresentException ex){
 			return false;
 		}
+		
+	}
+	/**
+	 * @param month
+	 * @return
+	 * Method for converting month into short month name
+	 */
+	public static String getMonthName(int month){
+		switch(month){
+		case 1:
+			return "Jan";
+		case 2:
+			return "Feb";
+		case 3:
+			return "Mar";
+		case 4:
+			return "Apr";
+		case 5:
+			return "May";
+		case 6:
+			return "Jun";
+		case 7:
+			return "Jul";
+		case 8:
+			return "Aug";
+		case 9:
+			return "Sep";
+		case 10:
+			return "Oct";
+		case 11:
+			return "Nov";
+		case 12:
+			return "Dec";
+		}
+		return null;
 		
 	}
 		

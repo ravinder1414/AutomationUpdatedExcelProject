@@ -9,10 +9,10 @@ While 1
    if $hdl <> 0 Then
 	  $title = WinGetTitle("Authentication Required") ; retrives whole window title
 	  $UN=WinGetText($title,"User Name:")
-	  ControlSend($title,"",$UN,"bharat.sethi@impellam.com");Sets Username
+	  ControlSend($title,"",$UN,  $CmdLine[1]);Sets Username
 	  $PWD=WinGetText($title,"Password:")
 	  Send("{TAB 1}")
-	  ControlSend($title,"",$PWD,"Clarity3");Sets PWD
+	  ControlSend($title,"",$PWD, $CmdLine[2]);Sets PWD
 	  Send("{ENTER}")
    EndIf
    WinWait("data:, - Google Chrome","","1") ; this is the name of the window, according to AUTOIT v3 window info

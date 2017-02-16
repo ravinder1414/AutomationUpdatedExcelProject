@@ -25,19 +25,10 @@ package automationFramework;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.AfterSuite;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.BeforeSuite;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Parameters;
-import org.testng.annotations.Test;
 
 import ObjectMap.OR;
 import SpiraTest.SpiraReader;
@@ -50,36 +41,39 @@ import utility.Utils;
 
 public class FrameworkDriver
 {
-	LocalTC Vars;
-	SpiraReader SpiraRead;
+	static LocalTC Vars;
+	static SpiraReader SpiraRead;
 	int rowCountBw = 0;
 	int rowCount = 0;
 
 	/****************************This function is called by TestNG at the start of the test suite
-	 * @throws MalformedURLException ***********************/
-	@BeforeSuite
-	public void beforeSuite() throws MalformedURLException {
+	 * @throws Exception ***********************/
+	//@BeforeSuite
+	public static void beforeSuite(String ProjectID, String ReleaseID, String TestSetID, String TestCaseID,
+			String TestRunPath, String Integration) throws Exception {
 		Log.info("beforeSuite : Strating Project Test Execution" );
 		SpiraRead = new SpiraReader();
+		loadLocally(ProjectID, ReleaseID, TestSetID, TestCaseID, TestRunPath, Integration);
 	}
 
 	/*************This function is called by TestNG at the start of the test by loading all arguments to object
 	 * @throws Exception ********/
-	@Parameters({"ProjectID","ReleaseID","TestSetID","TestCaseID","TestRunPath","Integration"})
-	@BeforeTest
-	public void loadLocally(String ProjectID,String ReleaseID,String TestSetID,String TestCaseID,String TestRunPath,String Integration) throws Exception
+	//@Parameters({"ProjectID","ReleaseID","TestSetID","TestCaseID","TestRunPath","Integration"})
+	//@BeforeTest
+	public static void loadLocally(String ProjectID,String ReleaseID,String TestSetID,String TestCaseID,String TestRunPath,String Integration) throws Exception
 	{
 		Vars = new LocalTC(ProjectID,ReleaseID,TestSetID,TestCaseID,TestRunPath,Integration);
 		Log.info("loadLocally : Running test for Project ID " +  Vars.getProjectID());
 		if (Vars.getIntegration() == false)
 			Log.startTestSet("loadLocally : Starting to execute Test Set " + TestSetID + " and Test Case " + TestCaseID);
+		init();
 	}
 	/****************************Initiate the 
 	 * 
 	 * @throws Exception
 	 */
-	@BeforeMethod //initiate the browser of a particular type (ie/firefox/chrome)
-	public void init() throws Exception
+	//@BeforeMethod //initiate the browser of a particular type (ie/firefox/chrome)
+	public static void init() throws Exception
 	{		
 		Vars.Translate = new TranslateEngine();
 		Vars.TestRun = new ExcelUtils();
@@ -103,10 +97,11 @@ public class FrameworkDriver
 		//create detail directory
 		ExcelUtils.createScreenShotDirectory(Vars, "Details");
 		ExcelUtils.deleteFile(Vars, null);
+		StartTest();
 	}
 
-	@Test 
-	public void StartTest() throws Exception 
+	//@Test 
+	public static void StartTest() throws Exception 
 	{
 		//if set to false open the excel file from TestRunPath sample added in TestData package
 		//loop through the excel or SpiraTest for all the test cases in the given Set
@@ -151,15 +146,12 @@ public class FrameworkDriver
 					if (null != Vars.TestRun.getCellData(rowItr, 1) && !Vars.TestRun.getCellData(rowItr, 1).isEmpty()) {
 						reportSumObj = new ReporterSummaryObject();
 						Vars.reporterObjectList = new ArrayList<>();
-						if (Vars.bw != null) {
-							Vars.conditionSkip = false;
-							if (Vars.loopflag == 1) {
-								Vars.loopflag = 0;
-								KeywordAction.endloop(Vars);
-							}
-							Vars.bw.close();
-							Log.endTestCase("End of Test Case : " + Vars.getTestCaseName());
+						Vars.conditionSkip = false;
+						if (Vars.loopflag == 1) {
+							Vars.loopflag = 0;
+							KeywordAction.endloop(Vars);
 						}
+						Log.endTestCase("End of Test Case : " + Vars.getTestCaseName());
 						Vars.setExecutionCount(rowItr - 1);
 						Vars.testcasestart = rowItr;
 						strTestCaseId = Vars.TestRun.getCellData(rowItr, 0).replaceAll("[|?\\/*:<>TCtc-]*", "");
@@ -194,6 +186,7 @@ public class FrameworkDriver
 							reportSumObj.setReportSummaryTestCaseStatus(Vars.getTestCaseStatus());
 							if (Vars.fscreenlock != 100) {
 								ExcelUtils.updateExcellSheet(Constant.Vars);
+								Constant.Vars.setResultStatus("");
 							}
 						}
 					}
@@ -223,10 +216,11 @@ public class FrameworkDriver
 			DateFormat dateFormatEndTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 			Constant.Vars.setExecutionEndTime(dateFormatEndTime.format(new Date()));
 		}
+		afterMethod();
 	}
 
-	@AfterMethod
-	public void afterMethod() throws IOException {
+	//@AfterMethod
+	public static void afterMethod() throws Exception {
 		if (Vars.fscreenlock == 100) {
 			Process process = null;
 			try{
@@ -255,14 +249,16 @@ public class FrameworkDriver
 				Log.error("Error in getting object for mail: " + e.getMessage());
 			}
 		}
+		tearDown();
 	}
 
-	@AfterSuite
-	public void tearDown() throws IOException
+	//@AfterSuite
+	public static void tearDown() throws IOException
 	{
 		if (Vars.fscreenlock != 100) {
 			BrowserFactory.closeAllDriver();
 			Log.info("Browser closed");
+			Log.info("################################### --- Framework End --- #################################");
 		}
 	}
 }

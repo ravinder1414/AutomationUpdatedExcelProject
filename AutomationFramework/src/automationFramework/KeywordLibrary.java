@@ -31,6 +31,7 @@ import org.openqa.selenium.remote.RemoteWebDriver;
 import com.automation.testcomplete.TestCompleteBean;
 
 import utility.Constant;
+import utility.ExcelUtils;
 import utility.Log;
 
 public class KeywordLibrary {
@@ -42,6 +43,7 @@ public class KeywordLibrary {
 	public static void ReadTest(LocalTC Vars) throws Exception{
 		if(Vars.getTestStep() !="")
 		{   
+			Vars.ExecutionStatus = "Not Run";
 			String TC = Vars.getTestStep();   //Store steps from Local TC to a local variable
 			String Ex = Vars.getExpected();   // Store Expected from Local TC to a local variable
 			String steps[] = TC.split("\\n");  //split the steps to get all action in one step
@@ -94,14 +96,7 @@ public class KeywordLibrary {
 							Vars.sTestStep = expected[i];
 							execsteps(Vars,Vars.sTestStep,Vars.getTestdata());
 							//Vars.setActualResult(Vars.getActualResult() + Vars.ExecutionResult + ";");
-							if (Vars.ExecutionStatus.equals("Failed") && (Vars.TestCaseStatus.equals("Passed") || Vars.TestCaseStatus.equals("Blocked")))
-								Vars.TestCaseStatus = "Failed";
-							else if (Vars.ExecutionStatus.equals("Blocked") && (Vars.TestCaseStatus.equals("Passed")))
-								Vars.TestCaseStatus = "Blocked";
-							else if (Vars.ExecutionStatus.equals("Skipped") && (Vars.TestCaseStatus.equals("Failed") || Vars.TestCaseStatus.equals("Blocked")))
-								Vars.TestCaseStatus = "Passed";
-							else if (Vars.ExecutionStatus.equals("Caution") && (Vars.TestCaseStatus.equals("Failed") || Vars.TestCaseStatus.equals("Blocked")))
-								Vars.TestCaseStatus = "Passed";
+							Vars.setTestCaseStatus("");
 						}
 					}
 				}
@@ -117,14 +112,7 @@ public class KeywordLibrary {
 						Vars.sTestStep = expected[i];
 						execsteps(Vars,expected[i],Vars.getTestdata());
 						//Vars.setActualResult(Vars.getActualResult() + Vars.ExecutionResult + ";");
-						if (Vars.ExecutionStatus.equals("Failed") && (Vars.TestCaseStatus.equals("Passed") || Vars.TestCaseStatus.equals("Blocked")))
-							Vars.TestCaseStatus = "Failed";
-						else if (Vars.ExecutionStatus.equals("Blocked") && (Vars.TestCaseStatus.equals("Passed")))
-							Vars.TestCaseStatus = "Blocked";
-						else if (Vars.ExecutionStatus.equals("Skipped") && (Vars.TestCaseStatus.equals("Failed") || Vars.TestCaseStatus.equals("Blocked")))
-							Vars.TestCaseStatus = "Passed";
-						else if (Vars.ExecutionStatus.equals("Caution") && (Vars.TestCaseStatus.equals("Failed") || Vars.TestCaseStatus.equals("Blocked")))
-							Vars.TestCaseStatus = "Passed";
+						Vars.setTestCaseStatus("");
 					}
 				}
 			}
@@ -138,13 +126,25 @@ public class KeywordLibrary {
 	 * @throws Exception 
 	 */
 	public static void execsteps(LocalTC Vars,String step,String TestData) throws Exception{
+		String browsername = Vars.obj.getBrowser();
+		if(null != browsername && !browsername.isEmpty()){
+			Vars.browsername = browsername;
+		}
 		try{
 			if(Vars.loopflag == 1 &&  ! step.contains("loop") && (Vars.runtestloopflag > 1 || Vars.runtestloopflag == 0)){
 				Vars.loopTestCases = Arrays.copyOf(Vars.loopTestCases, (Vars.startrow+1));
 				Vars.loopTestStepID = Arrays.copyOf(Vars.loopTestStepID, (Vars.startrow+1));
+				Vars.loopTestCaseName = Arrays.copyOf(Vars.loopTestCaseName, (Vars.startrow+1));
+				Vars.loopTestCaseId = Arrays.copyOf(Vars.loopTestCaseId, (Vars.startrow+1));
+				Vars.loopTestStepId = Arrays.copyOf(Vars.loopTestStepId, (Vars.startrow+1));
 				Vars.loopTestCases[Vars.startrow] = step;
+				Vars.loopTestCaseName[Vars.startrow] = Vars.getTestCaseName();
+				Vars.loopTestCaseId[Vars.startrow] = Integer.toString(Vars.getTestCaseID());
+				Vars.loopTestStepId[Vars.startrow] = Integer.toString(Vars.TestStepID);
 				Vars.loopTestStepID[Vars.startrow++] = Vars.TestStepID + "_" + Vars.row + "-" + Vars.startrow ;
-				Vars.act = Vars.startrow +1;
+				if (Vars.fscreenlock != 100) {
+					Vars.act = Vars.startrow +1;
+				}
 				Log.info(Vars.getTestCaseID() + "-" + Vars.row + "_" + Vars.getTestStepID() + "-" + Vars.startrow + " " + strLog.replace("endloop", step) ); //Print test action
 				Log.info("Inside loop adding steps to execution stack #" + (Vars.startrow-1) + " loop number # " + (Vars.loopnum+1));
 			}
@@ -182,23 +182,14 @@ public class KeywordLibrary {
 						testCompleteObj.setAct(Vars.act);
 						testCompleteObj.setTestSetId(Integer.toString(Vars.getTestSetID()));
 						Vars.getTestCompleteList().add(testCompleteObj);
-						
+
 					} else {
 						KeywordAction.CallAction(Vars);
 						if (!Vars.isRunTestCaseFlag())
 							setReportVariables(Vars);
+						Vars.setResultStatus(Vars.ExecutionStatus);
 						Vars.setRunTestCaseFlag(false);
-						if (Vars.ExecutionStatus.equals("Failed")
-								&& (Vars.TestCaseStatus.equals("Passed") || Vars.TestCaseStatus.equals("Blocked")))
-							Vars.TestCaseStatus = "Failed";
-						else if (Vars.ExecutionStatus.equals("Blocked") && (Vars.TestCaseStatus.equals("Passed")))
-							Vars.TestCaseStatus = "Blocked";
-						else if (Vars.ExecutionStatus.equals("Skipped")
-								&& (Vars.TestCaseStatus.equals("Failed") || Vars.TestCaseStatus.equals("Blocked")))
-							Vars.TestCaseStatus = "Passed";
-						else if (Vars.ExecutionStatus.equals("Caution")
-								&& (Vars.TestCaseStatus.equals("Failed") || Vars.TestCaseStatus.equals("Blocked")))
-							Vars.TestCaseStatus = "Passed";
+						Vars.setTestCaseStatus("");
 						Vars.setActualResult(Vars.getActualResult() + Vars.ExecutionResult + ";");
 						Log.info(Vars.ExecutionStatus + ":" + Vars.ExecutionResult);
 					}
@@ -232,10 +223,10 @@ public class KeywordLibrary {
 			{
 				if(Vars.loopsize > 1){
 					if(Vars.loopstart[Vars.loopnum] < Vars.loopend[Vars.loopnum-1]){
-					Vars.loopnum++;
-					Vars.loopsize--;
-					Vars.TestData.setExcelFile(Constant.Path_TestData, Vars.loopTestData[Vars.loopsize]);
-					execloopsteps(Vars,Vars.loopstart[Vars.loopnum],Vars.loopend[Vars.loopnum],Vars.loopcount[Vars.loopnum]);
+						Vars.loopnum++;
+						Vars.loopsize--;
+						Vars.TestData.setExcelFile(Constant.Path_TestData, Vars.loopTestData[Vars.loopsize]);
+						execloopsteps(Vars,Vars.loopstart[Vars.loopnum],Vars.loopend[Vars.loopnum],Vars.loopcount[Vars.loopnum]);
 					}
 					else{
 						Vars.sTestStep = Vars.loopTestCases[i];
@@ -244,22 +235,27 @@ public class KeywordLibrary {
 				}
 				else{
 					Vars.sTestStep = Vars.loopTestCases[i];
+					if (Vars.fscreenlock == 100) {
+						Vars.setTestCaseName(Vars.loopTestCaseName[i]);
+						Vars.setTestCaseID(Integer.parseInt(Vars.loopTestCaseId[i]));
+						Vars.TestStepID = Integer.parseInt(Vars.loopTestStepId[i]);
+					}
 					execsteps(Vars,Vars.sTestStep,Vars.loopTestData[Vars.loopnum]);
 				}
 			}
 		}
 	}
-	
+
 	public static void execTestCaseloopsteps(LocalTC Vars,int start,int end,int count) throws Exception{
 		for (Vars.loopcnt[Vars.loopnum]=0;Vars.loopcnt[Vars.loopnum]<count;Vars.loopcnt[Vars.loopnum]++){
 			for (int i=start; i<=end;i++)
 			{
 				if(Vars.loopsize > 1){
 					if(Vars.loopstart[Vars.loopnum] < Vars.loopend[Vars.loopnum-1]){
-					Vars.loopnum++;
-					Vars.loopsize--;
-					Vars.TestData.setExcelFile(Constant.Path_TestData, Vars.loopTestData[Vars.loopsize]);
-					execloopsteps(Vars,Vars.loopstart[Vars.loopnum],Vars.loopend[Vars.loopnum],Vars.loopcount[Vars.loopnum]);
+						Vars.loopnum++;
+						Vars.loopsize--;
+						Vars.TestData.setExcelFile(Constant.Path_TestData, Vars.loopTestData[Vars.loopsize]);
+						execloopsteps(Vars,Vars.loopstart[Vars.loopnum],Vars.loopend[Vars.loopnum],Vars.loopcount[Vars.loopnum]);
 					}
 					else{
 						Vars.sTestStep = Vars.loopTestCases[i];
@@ -308,8 +304,8 @@ public class KeywordLibrary {
 				return url1;
 			}
 		} catch (Exception e) {
-				Log.info("Error Occured in update_Report Function "+e.getMessage());
-			}
+			Log.info("Error Occured in update_Report Function "+e.getMessage());
+		}
 		return url1;
 	}
 

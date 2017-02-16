@@ -2,6 +2,7 @@ package automationFramework;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -553,7 +554,9 @@ public class Reporter {
 		int stepNotrun = 0;
 		int stepBlocked = 0;
 		String cssData = "";
-		BufferedReader bufferedReader = new BufferedReader(new FileReader(Constant.cssPath));
+		String cssPath = new File(Constant.cssPath)
+                .getAbsolutePath();
+		BufferedReader bufferedReader = new BufferedReader(new FileReader(cssPath));
 		try {
 			StringBuilder stringBuilder = new StringBuilder();
 			String line = bufferedReader.readLine();
@@ -573,8 +576,11 @@ public class Reporter {
 		Vars.setstrResultPath(rp + "Detail");
 		String htmlname = rp + "Detail\\" + strTimeStamp + ".html";
 		Vars.setDetailReport(strTimeStamp);
+		String path = new File(Constant.movieMakerPath)
+                .getAbsolutePath();
+		//String logoPath = new File(Constant.espireLogo).getAbsolutePath();
 		if (Vars.fscreenlock != 200) {
-			Process process = new ProcessBuilder(Constant.movieMakerPath,
+			Process process = new ProcessBuilder(path,
 					Vars.getstrResultPath().replace("//", "") + "\\Vedio_" + Vars.getDetailReport() + ".avi",
 					Vars.getstrResultPath().replace("//", "") + "\\" + Vars.getScreenshotTimeStamp()).start();
 		}
@@ -663,7 +669,7 @@ public class Reporter {
 		Vars.bw1.write("<tr><td>");
 		Vars.bw1.write("<table class=width100>");
 		Vars.bw1.write("<tr><td><img src=" + Constant.espireLogo + "></img></td>"
-				+ "<td class=\"headertext\">Impellam Automated Test Execution Report</td>");
+				+ "<td class=\"headertext\">" + Vars.getReportHeader() + "</td>");
 		Vars.bw1.write("</tr></table><hr>");
 		Vars.bw1.write("</td></tr>");
 		Vars.bw1.write("<tr><td>");
@@ -772,10 +778,15 @@ public class Reporter {
 	
 	/**
 	 * @param Vars
-	 * @throws IOException
-	 * Final report generating after all steps execution
+	 * @throws Exception 
 	 */
-	public static void generateReport(LocalTC Vars) throws IOException{
+	public static void generateReport(LocalTC Vars) throws Exception{
+		String reportTitle = Vars.obj.getReportTitle();
+		if(null == reportTitle){
+			reportTitle = "";
+		}else{
+			Vars.setReportHeader(reportTitle);
+		}
 		createSummaryReport(Vars);
 		CreateReport(Vars,"s");
 		CreateReport(Vars,"d");

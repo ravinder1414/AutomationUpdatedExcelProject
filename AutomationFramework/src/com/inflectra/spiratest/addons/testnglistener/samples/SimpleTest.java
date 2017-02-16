@@ -1,7 +1,7 @@
 package com.inflectra.spiratest.addons.testnglistener.samples;
 
-import org.testng.annotations.*;
-import static org.testng.AssertJUnit.*;
+/*import org.testng.annotations.*;
+import static org.testng.AssertJUnit.*;*/
 
 import com.inflectra.spiratest.addons.testnglistener.*;
 
@@ -12,23 +12,23 @@ import com.inflectra.spiratest.addons.testnglistener.*;
  * @version		3.0.0
  *
  */
-@SpiraTestConfiguration(
+/*@SpiraTestConfiguration(
 	url="https://impellam.spiraservice.net",
 	login="Bharat.Sethi",
 	password="Password",
 	projectId=75,
 	releaseId=587,
 	testSetId=-1
-)
-@Test(groups={"unittest"})
+)*/
+//@Test(groups={"unittest"})
 public class SimpleTest
 {
-	protected int fValue1;
+/*	protected int fValue1;
 	protected int fValue2;
 
-	/**
+	*//**
 	 * Sets up the unit test
-	 */
+	 *//*
 	@BeforeClass
 	public void setUp()
 	{
@@ -36,9 +36,9 @@ public class SimpleTest
 		fValue2= 3;
 	}
 
-	/**
+	*//**
 	 * Tests the addition of the two values
-	 */
+	 *//*
 	@Test(groups={"unittest"})
 	@SpiraTestCase(testCaseId=16209)
 	public void testAdd()
@@ -49,9 +49,9 @@ public class SimpleTest
 		assertTrue (result == 6);
 	}
 
-	/**
+	*//**
 	 * Tests division by zero
-	 */
+	 *//*
 	@Test(groups={"unittest"})
 	@SpiraTestCase(testCaseId=16210)
 	public void testDivideByZero()
@@ -61,9 +61,9 @@ public class SimpleTest
 		result++; // avoid warning for not using result
 	}
 
-	/**
+	*//**
 	 * Tests two equal values
-	 */
+	 *//*
 	@Test(groups={"unittest"})
 	@SpiraTestCase(testCaseId=16211)
 	public void testEquals()
@@ -76,9 +76,9 @@ public class SimpleTest
 		assertEquals("Capacity", 12.0, 11.99, 0.0);
 	}
 
-	/**
+	*//**
 	 * Tests success
-	 */
+	 *//*
 	@Test(groups={"unittest"})
 	@SpiraTestCase(testCaseId=6)
 	public void testSuccess()
@@ -87,9 +87,9 @@ public class SimpleTest
 		assertEquals(12, 12);
 	}
 	
-	/**
+	*//**
 	 * Tests parameterized methods
-	 */
+	 *//*
 	@Test(groups={"unittest"})
 	@SpiraTestCase(testCaseId=2)
 	@Parameters({"login", "password"})
@@ -100,5 +100,5 @@ public class SimpleTest
 
 		//Test password
 		assertEquals("PleaseChange", password);
-	}
+	}*/
 }

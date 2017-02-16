@@ -57,9 +57,21 @@ public class OR
 				String locator = prop.getProperty(strElement);
 				if (null != locator) {
 					// extract the locator type and value from the object
-					String locatorType = locator.split(":")[0];
+					String[] strLocator = locator.split(":");
+					String locatorType = strLocator[0];
+					String locatorValue = "";
 					Constant.Vars.ORvalname = locatorType;
-					String locatorValue = locator.split(":")[1];
+					if(strLocator.length>2){
+						for (int i=1; i<strLocator.length; i++){
+							if(locatorValue.isEmpty()){
+								locatorValue = strLocator[i];
+							}else{
+								locatorValue = locatorValue + ":" + strLocator[i];
+							}
+						}
+					}else{
+						locatorValue = locator.split(":")[1];
+					}
 					locatorValue = getValueofVariable(locatorValue);
 					Constant.Vars.ORvalue = locatorValue;
 					// for testing and debugging purposes
@@ -81,7 +93,7 @@ public class OR
 							return By.className(locatorValue);
 						case "tag":
 						case "tagname":
-							return By.className(locatorValue);
+							return By.tagName(locatorValue);
 						case "link":
 						case "linktext":
 							return By.linkText(locatorValue);
@@ -93,7 +105,11 @@ public class OR
 						case "xpath":
 							return By.xpath(locatorValue);
 						default:
-							return By.xpath(locatorValue);
+							/*if(locatorType.toLowerCase().equalsIgnoreCase("http") || locatorType.toLowerCase().equalsIgnoreCase("https")){
+								return By.xpath(locator);
+							}else{*/
+								return By.xpath(locatorValue);
+							//}
 						// throw new Exception("Unknown locator type '" +
 						// locatorType + "'");
 						}
@@ -122,9 +138,12 @@ public class OR
 			Constant.Vars.elem = Constant.driver.findElement(Locator);
 			if (Constant.driver instanceof JavascriptExecutor) {
 		        ((JavascriptExecutor)Constant.driver).executeScript("arguments[0].style.border='3px solid blue'", Constant.Vars.elem);
-		        ((JavascriptExecutor) Constant.driver).executeScript("arguments[0].scrollIntoView(true);", Constant.Vars.elem);
+		       // ((JavascriptExecutor) Constant.driver).executeScript("arguments[0].scrollIntoView(true);", Constant.Vars.elem);
 		    }
-			Constant.actions.moveToElement(Constant.Vars.elem).build().perform();
+			if (!Constant.Vars.elem.isDisplayed()){
+				((JavascriptExecutor) Constant.driver).executeScript("arguments[0].scrollIntoView(true);", Constant.Vars.elem);
+				Constant.actions.moveToElement(Constant.Vars.elem).perform();
+			}
 			return Constant.Vars.elem;
 		}
 		catch(Exception ex2){
@@ -134,8 +153,8 @@ public class OR
 	public String getValueofVariable(String ORValue) {
 		Pattern pt = Pattern.compile("##[^#\\s]*##");
 		Matcher mt = pt.matcher(ORValue);
-		if (mt.find()) {
-			return ORValue.replace(mt.group(0),Constant.Vars.getVariableDate(mt.group(0).replace("##", "")));
+		while (mt.find()) {
+			ORValue = ORValue.replace(mt.group(0),Constant.Vars.getVariableData(mt.group(0).replace("##", "")));
 		}
 		return ORValue;
 	}
@@ -1408,5 +1427,83 @@ public class OR
 			return locator;
 		}
 		return locator;
+	}
+	/**
+	 * @return
+	 * @throws Exception
+	 * return the value of username and password for the authentication window
+	 */
+	public String getAuthenticationValues() throws Exception {
+		// retrieve the specified object from the object list
+		String username = "";
+		String password = "";
+		try {
+			username = prop.getProperty("win.authentication.username");
+			password = prop.getProperty("win.authentication.password");
+		} catch (Exception ex2) {
+			Log.info("Error Occured in getLocator in getAuthenticationValues: " + ex2.getMessage());
+			return null;
+		}
+		return username + "#u;p@" + password;
+	}
+	
+	/**
+	 * @return
+	 * @throws Exception
+	 * return thw browser name from the property file
+	 */
+	public String getBrowser() throws Exception {
+		// retrieve the specified object from the object list
+		String browsername = "";
+		try {
+			browsername = prop.getProperty("launch.open.browser.name");
+		} catch (Exception ex2) {
+			Log.info("Error Occured in getLocator for getBrowser: " + ex2.getMessage());
+			return null;
+		}
+		return browsername;
+	}
+	
+	/**
+	 * @return
+	 * @throws Exception
+	 * return the header title for the report from the property file
+	 */
+	public String getReportTitle() throws Exception {
+		// retrieve the specified object from the object list
+		String reportTile = "";
+		try {
+			reportTile = prop.getProperty("report.header.title");
+		} catch (Exception ex2) {
+			Log.info("Error Occured in getLocator for getreportTitle: " + ex2.getMessage());
+			return null;
+		}
+		return reportTile;
+	}
+	
+	/**
+	 * @return
+	 * @throws Exception
+	 */
+	public String getDatabaseDetails() throws Exception {
+		// retrieve the database details
+		
+		String host_name = "";
+		String dbName = "";
+		String schemaname = "";
+		String dbUsername = "";
+		String dbPassword = "";
+		try {
+			host_name = prop.getProperty("database.host_name");
+			dbName = prop.getProperty("database.name");
+			schemaname = prop.getProperty("database.schemaname");
+			dbUsername = prop.getProperty("database.username");
+			dbPassword = prop.getProperty("database.password");
+		} catch (Exception ex2) {
+			Reporter.ReportEvent("objectmiss");
+			Log.info("Error Occured in getLocator in getDatabaseDetails: " + ex2.getMessage());
+			return null;
+		}
+		return host_name + "#d;b@" + dbName + "#d;b@" + schemaname + "#d;b@" + dbUsername + "#d;b@" + dbPassword;
 	}
 }

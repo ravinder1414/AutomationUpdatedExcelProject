@@ -9,9 +9,11 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.regex.Matcher;
@@ -22,6 +24,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.jfairy.Fairy;
 import org.jfairy.producer.company.Company;
 import org.jfairy.producer.person.Person;
+import org.jfairy.producer.person.Address;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
@@ -31,6 +34,7 @@ import ObjectMap.OR;
 import utility.Constant;
 import utility.ExcelUtils;
 import utility.Log;
+import utility.Utils;
 
 /**
  * @author mohammad.makki
@@ -109,6 +113,9 @@ public class LocalTC {
 	public String RunTestCase="";
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
 	public int executionCount = 0;
+	public String[] loopTestCaseName = new String[1];              //Holds test cases name for loop and nested loop
+	public String[] loopTestCaseId = new String[1];                //Holds test case id for loop and nested loop
+	public String[] loopTestStepId = new String[1];                //Holds only test step id for loop and nested loop
 	/**********************************************************/
 
 	/************Excel Connection Variables********************/
@@ -192,7 +199,7 @@ public class LocalTC {
 	String Event;
 	String Testdata;	
 	String ExecutionResult;
-	public String ResultStatus="Failed";
+	public String ResultStatus="Passed";
 	ArrayList<String> ResultsStatus = new ArrayList<>();
 	Map<String, String> map;
 	boolean bFlagSpell = false;
@@ -202,13 +209,14 @@ public class LocalTC {
 	{
 		map.put(Variable, Value);
 	}
-	public String getVariableDate(String Variable)
+	public String getVariableData(String Variable)
 	{
 		int num;
 		try{
 			String randomValue = "";
 			if(Variable.contains("random")){
-				Fairy fairy = Fairy.create();
+				int SEED = 7;
+				Fairy fairy = Fairy.create(); //Fairy.builder().withRandom(new Random(SEED)).withLocale(Locale.forLanguageTag("EN")).build();
 				Person person = fairy.person();
 				Company supplier=fairy.company();
 				Variable = Variable.replace("random", "").replace("_", "");
@@ -264,7 +272,7 @@ public class LocalTC {
 					randomValue = person.email();
 					break;
 				case "address":
-					randomValue = person.getAddress().toString();
+					randomValue = person.username();
 					break;
 				case "city":
 					randomValue = person.getAddress().city();
@@ -272,19 +280,54 @@ public class LocalTC {
 				case "postcode":
 					randomValue = person.getAddress().postalCode();
 					break;
+				case "age":
+					randomValue = Integer.toString(person.age());
+					break;	
 				case "ninumber":
-					String niFirst = person.firstName().substring(0, 2);
+					String niFirstChar = "ABCEGHJKLMNOPRSTWXYZ";
+					String niSecondChar = "ABCEGHJKLMNPRSTWXYZ";
+					String niFirst = "";
+					//= person.firstName().substring(0, 2).toUpperCase();
 					Random rndm = new Random();
-					int randomNum = rndm.nextInt(999999-100000) + 100000;
-					String niLast = person.firstName().substring(0, 1);
-					randomValue = niFirst+Integer.toString(randomNum)+niLast;
+					int randomNum = rndm.nextInt(999999 - 100000) + 100000;
+					niFirst = String.valueOf(niFirstChar.charAt(rndm.nextInt(niFirstChar.length())));
+					niFirst = niFirst + String.valueOf(niSecondChar.charAt(rndm.nextInt(niSecondChar.length())));
+					String niLast = "";
+					//= person.firstName().substring(0, 1);
+					String[] chars = {"A", "B", "C", "D"};
+					double[] probabilities = {0.2, 0.3, 0.4, 0.5};
+					double r = Math.random();
+					double cdf = 0.0;
+					for (int i = 0; i < chars.length; i++) {
+					    cdf += probabilities[i];
+					    if (r < cdf) {
+					    	niLast =  chars[i];
+					    	break;
+					    }
+					}
+					if (randomNum == 000000 || randomNum == 123456 || niFirst.equalsIgnoreCase("BG")
+							|| niFirst.equalsIgnoreCase("GB") || niFirst.equalsIgnoreCase("KN")
+							|| niFirst.equalsIgnoreCase("NK") || niFirst.equalsIgnoreCase("BG")
+							|| niFirst.equalsIgnoreCase("NT") || niFirst.equalsIgnoreCase("TN")
+							|| niFirst.equalsIgnoreCase("ZZ")) {
+						getVariableData("random_ninumber");
+					}
+					
+					randomValue = niFirst + Integer.toString(randomNum) + niLast;
 					break;
 				case "dob":
 				case "dateofbirth":
-					SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
+					/*SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
 					//Calendar c = Calendar.getInstance();
 					//c.setTime(sdf.parse(person.dateOfBirth()+""));
 					randomValue = sdf.format(person.dateOfBirth().toDate());
+					System.out.println(randomValue);*/
+					GregorianCalendar gc = new GregorianCalendar();
+			        int year = 1900 + (int)Math.round(Math.random() * (2000 - 1900));
+			        gc.set(gc.YEAR, year);
+			        int dayOfYear = 1 + (int)Math.round(Math.random() * (gc.getActualMaximum(gc.DAY_OF_YEAR) - 1900)); 
+			        gc.set(gc.DAY_OF_YEAR, dayOfYear);
+			        randomValue = gc.get(gc.DAY_OF_MONTH) + " " + Utils.getMonthName((gc.get(gc.MONTH) + 1)) + " " + gc.get(gc.YEAR);
 					break;
 				case "supplier":
 					randomValue = supplier.name();
@@ -292,6 +335,7 @@ public class LocalTC {
 				case "url":
 					randomValue = supplier.url();
 					break;
+
 				default:
 					randomValue = supplier.vatIdentificationNumber();
 					break;
@@ -411,8 +455,8 @@ public class LocalTC {
 		Constant.tempTestReportPath = TestSetID;
 		if (! (Constant.tempTestReportPath.endsWith("//") || Constant.tempTestReportPath.endsWith("\\")))
 			Constant.tempTestReportPath = Constant.tempTestReportPath + "\\";
-		Constant.ieDriverPath = Constant.tempTestReportPath + Constant.ieDriverPath;
-		Constant.chromeDriverPath = Constant.tempTestReportPath + Constant.chromeDriverPath;
+		//Constant.ieDriverPath = Constant.tempTestReportPath + Constant.ieDriverPath;
+		//Constant.chromeDriverPath = Constant.tempTestReportPath + Constant.chromeDriverPath;
 		Constant.Path_TestData = Constant.tempTestReportPath + Constant.Path_TestData;  
 		Constant.Path_ScreenShot=Constant.tempTestReportPath +Constant.Path_ScreenShot;
 		Constant.File_DownloadPath=TestSetID;
@@ -470,13 +514,13 @@ public class LocalTC {
 		Browsers.put("512", "IE");
 		Browsers.put("514", "Firefox");
 		Browsers.put("513", "Chrome");
-		Env.put("481", "https://cms6.test.evolution-system.com");
-		Env.put("482", "https://cms2.test.evolution-system.com");
-		Env.put("480", "https://cms5.test.evolution-system.com");
-		Env.put("515", "https://cms6.test.evolution-system.com");
-		Env.put("516", "https://cms2.test.evolution-system.com");
+		Env.put("481", "https://cms6test.evolution-system.com");
+		Env.put("482", "https://cms2test.evolution-system.com");
+		Env.put("480", "https://cms5test.evolution-system.com");
+		Env.put("515", "https://cms6test.evolution-system.com");
+		Env.put("516", "https://cms2test.evolution-system.com");
 		Env.put("517", "https://staging.evolution-system.com/universal/loginaccess.aspx");
-		Env.put("518", "https://cms1.test.evolution-system.com");
+		Env.put("518", "https://cms1test.evolution-system.com");
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
 		String strTimeStamp = dateFormat.format(new Date());
 		String[] dateArray = strTimeStamp.split("-");
@@ -532,6 +576,7 @@ public class LocalTC {
 	int screenTestCaseID;
 	String stopExecution = "false";
 	FileWriter fileWriter = null;
+	public String reportHeader;
 	public String getstrResultPath() {
 		return strResultPath;
 	}
@@ -572,7 +617,25 @@ public class LocalTC {
 		return ResultStatus;
 	}
 	public void setResultStatus(String resultStatus) {
-		ResultStatus = resultStatus;
+		
+		if (resultStatus.equals(""))
+			ResultStatus = "Passed";
+		else if (resultStatus.equals("Passed") && (ResultStatus.equals("Passed")))
+			ResultStatus = "Passed";	
+		else if (resultStatus.equals("Failed") && (ResultStatus.equals("Passed") || ResultStatus.equals("Blocked")))
+			ResultStatus = "Failed";
+		else if (ResultStatus.equals("Failed"))
+			ResultStatus = "Failed";
+		else if (ResultStatus.equals("Blocked"))
+			ResultStatus = "Blocked";
+		else if (resultStatus.equals("Blocked") && (ResultStatus.equals("Passed")))
+			ResultStatus = "Blocked";
+		else if (resultStatus.equals("Skipped") && (ResultStatus.equals("Passed")))
+			ResultStatus = "Passed";
+		else if (resultStatus.equals("Caution") && (ResultStatus.equals("Passed")))
+			ResultStatus = "Caution";
+		else
+			ResultStatus = resultStatus;
 	}
 	public ArrayList<String> getResultsStatus() {
 		return ResultsStatus;
@@ -584,13 +647,33 @@ public class LocalTC {
 		return ExecutionStatus;
 	}
 	public void setExecutionStatus(String executionStatus) {
-		ExecutionStatus = executionStatus;
+		if(executionStatus.equals("Failed"))
+			ExecutionStatus = "Failed";
+		else if(executionStatus.equals("Blocked") )
+			ExecutionStatus = "Blocked";
+		else if(executionStatus.equals("Caution"))
+			ExecutionStatus = "Caution";
+		else
+			ExecutionStatus =executionStatus;
+
 	}
 	public String getTestCaseStatus() {
 		return TestCaseStatus;
 	}
 	public void setTestCaseStatus(String testCaseStatus) {
-		TestCaseStatus = testCaseStatus;
+		if(!testCaseStatus.equals(""))
+			TestCaseStatus=testCaseStatus;
+		else if (ExecutionStatus.equals("Passed") && (TestCaseStatus.equals("Passed")))
+			TestCaseStatus = "Passed";	
+		else if (ExecutionStatus.equals("Failed") && (TestCaseStatus.equals("Passed") || TestCaseStatus.equals("Blocked")))
+			TestCaseStatus = "Failed";
+		else if (ExecutionStatus.equals("Blocked") && (TestCaseStatus.equals("Passed")))
+			TestCaseStatus = "Blocked";
+		else if (ExecutionStatus.equals("Skipped") && (TestCaseStatus.equals("Passed")))
+			TestCaseStatus = "Passed";
+		else if (ExecutionStatus.equals("Caution") && (TestCaseStatus.equals("Passed")))
+			TestCaseStatus = "Caution";
+		
 	}
 	public String getReportReleaseId() {
 		return reportReleaseId;
@@ -611,6 +694,12 @@ public class LocalTC {
 	}
 	public void setFileWriter(FileWriter fileWriter) {
 		this.fileWriter = fileWriter;
+	}
+	public String getReportHeader() {
+		return reportHeader;
+	}
+	public void setReportHeader(String reportHeader) {
+		this.reportHeader = reportHeader;
 	}
 
 	/////////////////////Date picker////////////////////////////////////////
@@ -702,11 +791,11 @@ public class LocalTC {
 	/**********************************Thread Variable***********************************/
 	public Thread automationThread = null;
 	public Thread appletThread = null;
-	
+
 	/*************************************Test Complete*************************************************/
 	ArrayList<TestCompleteBean> testCompleteList;
 	String csvFilePath;
-	
+
 	//ProjectId, ReleaseID, executionStartTime, testCompleteStatus, csvFilePath, excelFilePath, integrationFlag
 	public LocalTC(String ProjectId, String ReleaseID, String executionStartTime, String testCompleteCode, String csvFilePath, String excelFilePath, String integration) {
 		iProjectID = Integer.parseInt(ProjectId);
@@ -733,9 +822,9 @@ public class LocalTC {
 	public void setCsvFilePath(String csvFilePath) {
 		this.csvFilePath = csvFilePath;
 	}
-	
+
 	/*****************************************Spira for Test complete*****************************************/
-	
+
 	public int testComTestSetId;
 	public int testComTestCaseId;
 	public int testComTestStepId;

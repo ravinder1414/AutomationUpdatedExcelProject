@@ -12,7 +12,7 @@ If $FF_PID <> -1 Then
 
         ; Delete non-Firefox and non-visible Mozilla windows from list
         For $n = $avMozList[0][0] To 1 Step -1
-		   ;ConsoleWrite("Dialog List = " & $avMozList[$n][0] & @LF)
+		   ConsoleWrite("Dialog List = " & $avMozList[$n][0] & @LF)
             If (WinGetProcess($avMozList[$n][1], "") = $FF_PID) And _
                     BitAND(WinGetState($avMozList[$n][1]), 0x2) Then
 					Local $iPosition = StringInStr($avMozList[$n][0], "Opening")
@@ -30,9 +30,25 @@ If $FF_PID <> -1 Then
 						Send("{ENTER}")
 						ExitLoop
 					 EndIf
+					 $iPosition = StringInStr($avMozList[$n][0], "Authentication Required")
+					 if ($iPosition > 0) Then
+						ConsoleWrite("Click on  " & $avMozList[$n][0] & @LF)
+						; wait for 8 seconds to appear download and save dialog. Used class property of download dialog.
+						;WinWait("[CLASS:#MozillaDialogClass]","",8)
+						WinActivate($avMozList[$n][0])
+						Sleep(1000)
+						; Perform keyboard ALT key down + s + ALT key Up action to select Save File Radio button using keyboard sortcut.
+						Send("bharat.sethi{TAB}")
+						Send("Clarity3{TAB}")
+						; Wait for 3 seconds
+						Sleep(3000)
+						; Press Keyboard ENTER button.
+						Send("{ENTER}")
+						ExitLoop
+					 EndIf
                 ContinueLoop
-            Else
-                _ArrayDelete($avMozList, $n)
+			 Else
+				  _ArrayDelete($avMozList, $n)
             EndIf
         Next
         $avMozList[0][0] = UBound($avMozList) - 1
@@ -62,7 +78,7 @@ If $FF_PID <> -1 Then
         ;Sleep(250)
     EndIf
 Else
-    MsgBox(16, "Error", "Firefox is not running")
+    ConsoleWrite("Firefox is not running")
     Exit
 EndIf
 

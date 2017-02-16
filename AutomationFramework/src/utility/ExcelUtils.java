@@ -68,10 +68,12 @@ public class ExcelUtils {
 		try {
 			
 			// Open the Excel file
-			ExcelFile = new FileInputStream(Path);
-			// Access the required test data sheet
-			ExcelWBook = new XSSFWorkbook(ExcelFile);
-			ExcelWSheet = ExcelWBook.getSheet(SheetName.trim().replace("\\n", "").trim());
+			if (null != Path || !Path.isEmpty()) {
+				ExcelFile = new FileInputStream(Path);
+				// Access the required test data sheet
+				ExcelWBook = new XSSFWorkbook(ExcelFile);
+				ExcelWSheet = ExcelWBook.getSheet(SheetName.trim().replace("\\n", "").trim());
+			}
 		} catch (Exception e){
 			Log.info("error message"+e.getMessage());
 			throw (e);
@@ -211,7 +213,7 @@ public class ExcelUtils {
 			XSSFCell cell = null;
 			// Update the value of cell
 			cell = sheet.getRow(Vars.row+2).getCell(9);
-			cell.setCellValue(Vars.ExecutionStatus);
+			cell.setCellValue(Vars.ResultStatus);
 			cell = sheet.getRow(Vars.testcasestart).getCell(9);
 			cell.setCellValue(Vars.TestCaseStatus);
 			cell = sheet.getRow(Vars.row+2).getCell(10);
@@ -543,7 +545,8 @@ public class ExcelUtils {
 			try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
 
 				br.readLine();
-				while ((line = br.readLine()) != null) {
+				line = br.readLine();
+				while (line != null && !(line.equalsIgnoreCase("")) && line !="null") {
 					// Test Case Id, Test Step id, Test Set Name, Test Case
 					// Name, Test Step, Action,
 					// Object, ObjectProp, Event, Test Data, Execution Result,
@@ -555,6 +558,7 @@ public class ExcelUtils {
 							&& Integer.parseInt(csvValue[2]) != Constant.Vars.getTestComTestStepId()) {
 						spiraReaderTestComplete.updateTestStep(Constant.Vars);
 						Constant.Vars.setTestComTestStepStatus("");
+						Constant.Vars.setActualResult("");
 					}
 					if (Constant.Vars.getIntegration() == true && 0 != Constant.Vars.getTestComTestCaseId()
 							&& Integer.parseInt(csvValue[1]) != Constant.Vars.getTestComTestCaseId()) {
@@ -570,15 +574,17 @@ public class ExcelUtils {
 					if(Constant.Vars.getIntegration() == true)
 						setJSONObjectVar(Constant.Vars, csvValue);
 					KeywordLibrary.setReportVarForTestComplete(csvValue);
+					line = br.readLine();
+					Log.info(line);
 				}
-
+				
 			} catch (IOException e) {
 				Log.info("Error in reading file: " + e.getMessage());
 			}
-			if (Constant.Vars.getIntegration() == true) {
+			if (Constant.Vars.getIntegration() == true) {//update the very last step and very last test case
 				spiraReaderTestComplete.updateTestStep(Constant.Vars);
 				spiraReaderTestComplete.updateTestCase(Constant.Vars);
-				spiraReaderTestComplete.updateAll(Constant.Vars);
+				spiraReaderTestComplete.updateAll(Constant.Vars); //update the jason in spiratest
 			}
 			setVariableToReport(reportSumObj, reportCommonObj, testSetBrowserName);
 			DateFormat dateFormatEndTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -699,7 +705,7 @@ public class ExcelUtils {
 			for (String strObject : strObjectType) {
 				try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
 					if(strObject.split(":")[1].contains("#")){
-						strData = Vars.getVariableDate(strObject.split(":")[1].replace("#", ""));
+						strData = Vars.getVariableData(strObject.split(":")[1].replace("#", ""));
 					}else{
 						strData = strObject.split(":")[1];
 					}
@@ -785,7 +791,7 @@ public class ExcelUtils {
 		if(null != fileName){
 			filePath = Constant.tempTestReportPath + fileName;
 		}else{
-			filePath = Constant.tempTestReportPath + Vars.getVariableDate("csvDataFile");
+			filePath = Constant.tempTestReportPath + Vars.getVariableData("csvDataFile");
 		}
 		if (new File(filePath).exists()) {
 			new File(filePath).delete();
@@ -797,7 +803,7 @@ public class ExcelUtils {
 	 * @throws IOException 
 	 * @throws ParseException 
 	 */
-	public static String readWriteCSV(String filePath, String dateFormat, String strData)
+	/*public static String readWriteCSV(String filePath, String dateFormat, String strData)
 			throws IOException, ParseException {
 
 		ArrayList<String> arrDateTemp = new ArrayList<>();
@@ -846,11 +852,11 @@ public class ExcelUtils {
 		reader.close();
 		//writing a copy file into temp 
 		File filePath1 = new File(Constant.tempTestReportPath + "tempCSV.csv");
-		CSVWriter writer = new CSVWriter(new FileWriter(filePath1), ',', CSVWriter.NO_QUOTE_CHARACTER);
+		CSVWriter writer = new CSVWriter(new FileWriter(filePath1), ',');
 		writer.writeAll(csvBody);
 		writer.flush();
 		writer.close();
 		return filePath1.toString();
-	}
+	}*/
 }
 	

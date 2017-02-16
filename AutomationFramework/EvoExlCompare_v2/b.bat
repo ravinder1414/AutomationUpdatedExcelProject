@@ -26,3 +26,18 @@ EvoExlCompare "C:\CsvFiles\ExistingExport.csv" "" "C:\CsvFiles\ExistingExport_pa
 REM --------------------------------------------------------------------------------------------------------
 ECHO Below is showing correct loading of 20160729095647_JLSB900040.csv
 EvoExlCompare "C:\CsvFiles\20160729095647_JLSB900040.csv" "" "C:\CsvFiles\20160729095647_JLSB900040_Part.csv" ""
+
+
+EvoExlCompare "C:\CsvFiles\20160729095647_JLSB900040.csv" "'Job Title=c:Job Title2'@Next'Age=v:30'@Next'Age>c:Age 2'@Next'Age<v:35'"
+
+EvoExlCompare "C:\CsvFiles\SingleFile.csv" "Name=c:Name2 @Next Age1=v:31 @Next Age1>c:Age2"
+EvoExlCompare "C:\CsvFiles\SingleFile.csv" "Name=c:Name2 @Next Age1=v:31" "" ""
+EvoExlCompare "C:\CsvFiles\SingleFile.csv" "DOB1=c:DOB2"
+
+Name,Age1,Name2,Age2
+=
+>
+<
+>=
+<=
+!=

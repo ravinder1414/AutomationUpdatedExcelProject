@@ -78,7 +78,7 @@ public class SpiraReader {
 	public SpiraReader() throws MalformedURLException {
 		super();
 		enddate=Instant.now();
-		File f = new File("C:\\Impellam.txt");
+		File f = new File(Constant.tempTestReportPath + "\\Impellam.txt");
 		if (f.exists()) 
 			this.proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("10.21.0.25", 8080));
 		else
@@ -114,7 +114,7 @@ public class SpiraReader {
 				while ((line = br.readLine()) != null) {
 					System.out.println(line);
 				}
-				Log.info("Blocked: test has been blocked due to connectivity with SpiraTest");
+				Log.info("Blocked: ExtractTestSteps has been blocked due to connectivity with SpiraTest");
 				throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
 			}
 			Log.info("Reading teststeps from spira response");
@@ -135,14 +135,14 @@ public class SpiraReader {
 			obj.setTestCaseID(tempTestCaseID);
 		} 
 		catch (MalformedURLException e) {
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: ExtractTestSteps has been blocked due to exception in MalformedURLException while reading SpiraTest");
 			e.printStackTrace();
 		} catch (IOException e) {
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: ExtractTestSteps has been blocked due to exception in MalformedURLException while reading SpiraTest");
 			e.printStackTrace();
 		}
 		catch (JSONException e) {
-			Log.info("Blocked: test has been blocked due to exception in JSONException while reading SpiraTest");
+			Log.info("Blocked: ExtractTestSteps has been blocked due to exception in JSONException while reading SpiraTest");
 			e.printStackTrace();
 		}
 	}
@@ -223,7 +223,7 @@ public class SpiraReader {
 				while ((line = br.readLine()) != null) {
 					System.out.println(line);
 				}
-				Log.info("Blocked: test has been blocked due to connectivity with SpiraTest");
+				Log.info("Blocked: ExtractTestCases has been blocked due to connectivity with SpiraTest");
 				throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
 			}
 			Log.info("Reading testcases from spira response");
@@ -247,14 +247,14 @@ public class SpiraReader {
 			conn.disconnect();
 		} 
 		catch (MalformedURLException e) {
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: ExtractTestCases has been blocked due to exception in MalformedURLException while reading SpiraTest");
 			e.printStackTrace();
 		} catch (IOException e) {
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: ExtractTestCases has been blocked due to exception in MalformedURLException while reading SpiraTest");
 			e.printStackTrace();
 		}
 		catch (JSONException e) {
-			Log.info("Blocked: test has been blocked due to exception in JSONException while reading SpiraTest");
+			Log.info("Blocked: ExtractTestCases has been blocked due to exception in JSONException while reading SpiraTest");
 			e.printStackTrace();
 		}
 	}
@@ -284,7 +284,7 @@ public class SpiraReader {
 				while ((line = br.readLine()) != null) {
 					System.out.println(line);
 				}
-				Log.info("Blocked: test has been blocked due to connectivity with SpiraTest");
+				Log.info("Blocked: ExtractTestSet has been blocked due to connectivity with SpiraTest");
 				throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
 			}
 			Log.info("Reading testset name from spira response");
@@ -316,14 +316,14 @@ public class SpiraReader {
 			conn.disconnect();
 		} 
 		catch (MalformedURLException e) {
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: ExtractTestSet has been blocked due to exception in MalformedURLException while reading SpiraTest");
 			e.printStackTrace();
 		} catch (IOException e) {
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: ExtractTestSet has been blocked due to exception in MalformedURLException while reading SpiraTest");
 			e.printStackTrace();
 		}
 		catch (JSONException e) {
-			Log.info("Blocked: test has been blocked due to exception in JSONException while reading SpiraTest");
+			Log.info("Blocked: ExtractTestSet has been blocked due to exception in JSONException while reading SpiraTest");
 			e.printStackTrace();
 		}
 	}
@@ -357,7 +357,7 @@ public class SpiraReader {
 				while ((line = br.readLine()) != null) {
 					System.out.println(line);
 				}
-				Log.info("Blocked: test has been blocked due to connectivity with SpiraTest");
+				Log.info("Blocked: ExtractTestSetinProject has been blocked due to connectivity with SpiraTest");
 				throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
 			}
 			Log.info("Reading testsets in project having running release id");
@@ -408,13 +408,13 @@ public class SpiraReader {
 			Constant.driver = null;
 		} 
 		catch (MalformedURLException e) {
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: ExtractTestSetinProject has been blocked due to exception in MalformedURLException while reading SpiraTest");
 			e.printStackTrace();
 		} catch (IOException e) {
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: ExtractTestSetinProject has been blocked due to exception in IOException while reading SpiraTest");
 			e.printStackTrace();
 		} catch (JSONException e) {
-			Log.info("Blocked: test has been blocked due to exception in JSONException while reading SpiraTest");
+			Log.info("Blocked: ExtractTestSetinProject has been blocked due to exception in JSONException while reading SpiraTest");
 			e.printStackTrace();
 		}
 	}
@@ -528,11 +528,11 @@ public class SpiraReader {
 		}
 		catch (MalformedURLException e) {
 			UpdateTestRun(obj);
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: CreateTestRun has been blocked due to exception in MalformedURLException while reading SpiraTest");
 			e.printStackTrace();
 		} catch (IOException e) {
 			UpdateTestRun(obj);
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: CreateTestRun has been blocked due to exception in MalformedURLException while reading SpiraTest");
 			e.printStackTrace();
 		}
 	} 
@@ -576,7 +576,7 @@ public class SpiraReader {
 				while ((line = br.readLine()) != null) {
 					Log.info (line);
 				}
-				Log.info("Blocked: test has been blocked due to connectivity with SpiraTest in updating results");
+				Log.info("Blocked: UpdateTestRun has been blocked due to connectivity with SpiraTest in updating results");
 				//throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
 			}
 			/*Log.info("Creating testrun for automation execution");
@@ -594,10 +594,10 @@ public class SpiraReader {
 			Log.info(e.getMessage());
 		}
 		catch (MalformedURLException e) {
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: UpdateTestRun has been blocked due to exception in MalformedURLException while reading SpiraTest");
 			e.printStackTrace();
 		} catch (IOException e) {
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: UpdateTestRun has been blocked due to exception in MalformedURLException while reading SpiraTest");
 			e.printStackTrace();
 		}
 	}
@@ -622,7 +622,7 @@ public class SpiraReader {
 				while ((line = br.readLine()) != null) {
 					System.out.println(line);
 				}
-				Log.info("Blocked: test has been blocked due to connectivity with SpiraTest");
+				Log.info("Blocked: ExtractRelease has been blocked due to connectivity with SpiraTest");
 				throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
 			}
 			Log.info("Reading Release from spira response");
@@ -671,14 +671,14 @@ public class SpiraReader {
 
 		}
 		catch (MalformedURLException e) {
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: ExtractRelease has been blocked due to exception in MalformedURLException while reading SpiraTest");
 			e.printStackTrace();
 		} catch (IOException e) {
-			Log.info("Blocked: test has been blocked due to exception in MalformedURLException while reading SpiraTest");
+			Log.info("Blocked: ExtractRelease has been blocked due to exception in MalformedURLException while reading SpiraTest");
 			e.printStackTrace();
 		}
 		catch (JSONException e) {
-			Log.info("Blocked: test has been blocked due to exception in JSONException while reading SpiraTest");
+			Log.info("Blocked: ExtractRelease has been blocked due to exception in JSONException while reading SpiraTest");
 			e.printStackTrace();
 		}
 	}

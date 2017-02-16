@@ -22,9 +22,10 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.sql.CallableStatement;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -197,11 +198,15 @@ public class KeywordAction extends KeywordLibrary {
 				Vars.setScreenshotTypeFlag(1);
 				break;
 			case Constant.Upload:  //uploading document into existing path
+				String strPath = "";
 				if (Vars.getObj().toString() == "") {
 					Vars.setRes_type(Constant.FilePathNotFound2);
 					doUploadDownload(Constant.Abortupload,Vars);
 				} else {
-					String strPath = Constant.tempTestReportPath + Vars.getObj();
+					if(Vars.getObj().contains("#")){
+						strPath = Constant.tempTestReportPath + Vars.getVariableData(Vars.getObj().substring(1, (Vars.getObj().length())));
+					}else
+						strPath = Constant.tempTestReportPath + Vars.getObj();
 					strPath = strPath.replace("//", File.separator);
 					if (new File(strPath.toString()).exists()) {
 						doUploadDownload(Constant.Upload,Vars);
@@ -256,6 +261,12 @@ public class KeywordAction extends KeywordLibrary {
 			case Constant.Msgbox:
 				msgbox(Vars);
 				break;
+			case Constant.SendKey:
+				fnSendKey(Vars);
+				break;
+			case Constant.ReplaceData:
+				replaceData(Vars);
+				break;
 			default:
 				result = "Test Step not supported, Please correct";
 				Vars.setExecutionResult(result);
@@ -265,8 +276,8 @@ public class KeywordAction extends KeywordLibrary {
 			}
 		}
 		catch (Exception ex) {
-			Vars.setExecutionStatus(Constant.Blocked);
-			Vars.setRes_type(Constant.Blocked);
+			Vars.setExecutionStatus(Constant.Caution);
+			Vars.setRes_type(Constant.Caution);
 			Vars.setExceptionVar(ex.toString());
 			result = "failed  " +ex.getMessage()+ " Current Script:" +  Vars.iTestCaseID + " Current Script:" +  Vars.TestStepID;
 			Vars.setExecutionResult(result);
@@ -318,6 +329,11 @@ public class KeywordAction extends KeywordLibrary {
 	 * @throws Exception 
 	 */
 	private static void LaunchApp(LocalTC vars) throws Exception {
+		String winAuthentication = new File(Constant.WinAuthentication).getAbsolutePath();
+		String[] authObjects = vars.obj.getAuthenticationValues().split("#u;p@");
+		if (authObjects.length > 1) {
+			Runtime.getRuntime().exec(winAuthentication + " " + authObjects[0] + " " + authObjects[1]);
+		}
 		if (Constant.driver == null) {
 			Constant.driver = BrowserFactory.getBrowser(vars);
 			if(null != vars.getObjProp()){
@@ -330,6 +346,9 @@ public class KeywordAction extends KeywordLibrary {
 			Constant.driver =BrowserFactory.getBrowser(vars);
 			Constant.driver.get(vars.getObjProp());
 			result = "Navigated to " + vars.getObjProp();
+		}
+		if (authObjects.length > 1) {
+			Runtime.getRuntime().exec("taskkill /F /IM winAuthentication.exe");
 		}
 		Constant.actions = new Actions(Constant.driver);
 		vars.setExecutionResult(result);
@@ -362,7 +381,7 @@ public class KeywordAction extends KeywordLibrary {
 		ObjectEvent = Vars.Event.toLowerCase();
 		ObjectTestData=Vars.getTestdata().replace("\"", "");
 		if (ObjectTestData.startsWith("#") && !ObjectEvent.equalsIgnoreCase("ok")){
-			String VarValue= Vars.getVariableDate(ObjectTestData.replace("#", ""));
+			String VarValue= Vars.getVariableData(ObjectTestData.replace("#", ""));
 			if(VarValue==null)
 				ObjectTestData=ObjectTestData.replace("#", "");
 			else
@@ -434,6 +453,7 @@ public class KeywordAction extends KeywordLibrary {
 	 * @throws Exception
 	 */
 	public static void dCellAction(LocalTC Vars) throws Exception {
+		boolean boolval = false;
 		try {
 			int windowFound = 0;
 			if(Constant.driver == null) {
@@ -474,16 +494,24 @@ public class KeywordAction extends KeywordLibrary {
 							Vars.setExecutionStatus(Constant.Caution);
 							Vars.setRes_type(Constant.Missing);
 						} else {
-							inputvalue.append(ObjectTestData);
-							Vars.elem.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, "a"), ObjectTestData);
-							//inputvalue.append(ObjectTestData);
-							//Vars.elem.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, "a"), ObjectTestData);
+							if(! (Vars.browsername=="IE")){
+								inputvalue.append(ObjectTestData);
+								Vars.elem.sendKeys(org.openqa.selenium.Keys.chord(org.openqa.selenium.Keys.CONTROL, "a"), ObjectTestData);
+							}
+							else
+								Vars.elem.sendKeys(ObjectTestData);
 							result = ObjectTestData+" has been entered";
 							Vars.setExecutionStatus(Constant.Passed);
 							Vars.setExecutionResult(result);
 							Vars.setRes_type(Constant.Executed);
 						}
 					} else {
+						if(ObjectType.equalsIgnoreCase("element"))
+						{
+							Constant.Vars.robot.keyPress(KeyEvent.VK_2);
+							Constant.Vars.robot.keyRelease(KeyEvent.VK_2);
+						}
+						else
 						Vars.elem.sendKeys(ObjectTestData);
 						result = ObjectTestData+" has been entered";
 						Vars.setExecutionStatus(Constant.Passed);
@@ -687,12 +715,14 @@ public class KeywordAction extends KeywordLibrary {
 				case Constant.Click: //Click on obj="object" 
 					//parentWindowHandle1 = driver.getWindowHandle();
 					try {
-						//click on table obj=webtable in column 7 with "title:contains(Extend)"
-						//click on table obj=webtable in column 7 with "title:#Extend"
+						//click on table obj=webtable in column 7/#tablecolnumber with "title:contains(Extend)"
+						//click on table obj=webtable in column 7/#tablecolnumber with "title:#Extend"
 						//search in 7th column and click on 12th column 
-						//click on table obj=webtable in column 7 with "text:#Extend:12"
-						//click on table obj=webtable in column 7 index 3 for 7 times/rows with "text:#Extend:12"
-						//click on table obj=webtable in column 7 with "value:Extend"
+						//click on table obj=webtable in column 7/#tablecolnumber with "text:#Extend:12/#tablecolnumber"
+						//click on table obj=webtable in column 7/#tablecolnumber index 3 for 7 times/rows with "text:#Extend:12"
+						//click on table obj=webtable in column 7/#tablecolnumber with "value:Extend"
+						//click on checkbox obj=xyz.abc set to "on" 
+						//click on checkbox obj=xyz.abc set to "off"
 
 						if(ObjectType.equalsIgnoreCase("table")) {
 							int row,j=1;//,rowindex; // to hold number of rows in the webtable
@@ -709,7 +739,7 @@ public class KeywordAction extends KeywordLibrary {
 							List<WebElement> rows = Vars.elem.findElements(By.tagName("tr")); // get all row element
 							row = rows.size(); //count number of rows
 							String[] attribute = ObjectTestData.split(":"); //get on what property should we compare
-							/*       Pattern pattern = Pattern.compile("[0-9]+");
+							/* Pattern pattern = Pattern.compile("[0-9]+");
 						       Matcher matcher = pattern.matcher(Vars.sTestStep);
 						       if(matcher.find()){
 						    	   column = Integer.parseInt(matcher.group(0));
@@ -717,6 +747,10 @@ public class KeywordAction extends KeywordLibrary {
 						    		   if (Vars.sTestStep.toLowerCase().contains("index"))
 						    			   index = 	Integer.parseInt(matcher.group(1));   
 					       }*/
+							if(Vars.sTestStep.contains("#tablecolnum")) //replace the col number with variable data
+							{
+								Vars.sTestStep = Vars.sTestStep.replace("#tablecolnum", Vars.getVariableData("tablecolnum"));
+							}
 							elementText = Vars.sTestStep.replaceAll("[^-?0-9]+", " ");
 							arr = elementText.trim().split(" ");
 							column = Integer.parseInt(arr[0]);
@@ -730,18 +764,22 @@ public class KeywordAction extends KeywordLibrary {
 							else
 								if (Vars.sTestStep.toLowerCase().contains(" rows ") || Vars.sTestStep.toLowerCase().contains(" times ")) 
 									rowcount = Integer.parseInt(arr[1]); 
-							if(attribute.length > 2)
-								rowtoread = Integer.parseInt(attribute[2]);
+							if(attribute.length > 2){
+								if(attribute[2].contains("#tablecolnum"))
+									rowtoread = Integer.parseInt(Vars.getVariableData("tablecolnum"));
+								else
+									rowtoread = Integer.parseInt(attribute[2]);
+							}
 							else
 								rowtoread = column;
 							if(attribute[1].contains("#"))
-								attribute[1] = Vars.getVariableDate(attribute[1].replace("#", ""));
-							for(int i=1; i<=row;i++){
+								attribute[1] = Vars.getVariableData(attribute[1].replace("#", ""));
+							for(int i=1; i<=row-1;i++){
 								//if(rowindex == 0 && row > rowindex)
 								colelements = rows.get(i).findElements(By.tagName("td"));
 								//else
 								// colelements = rows.get(rowindex).findElements(By.tagName("td"));
-								if(colelements.size()>(column-2)){//ignore if any of the row does no have that column in it
+								if(colelements.size()>(column-2) && colelements.size()>0 ){//ignore if any of the row does no have that column in it
 									elementText=colelements.get(rowtoread-1).getText();
 									if(elementText.equalsIgnoreCase("")){
 										childelementstoread = colelements.get(rowtoread-1).findElements(By.xpath(".//*"));
@@ -795,12 +833,13 @@ public class KeywordAction extends KeywordLibrary {
 
 						}
 						else {  
-							if (Vars.elem.getAttribute("type") !=null){
+
+							if (Vars.elem.getAttribute("type") != null) {
 								if (Vars.elem.getAttribute("type").toLowerCase().equals("file")
 										&& Vars.getbrowsername().equalsIgnoreCase("firefox")) {
 									JavascriptExecutor executor = (JavascriptExecutor) Constant.driver;
-									executor.executeScript("arguments[0].click();",Vars.elem);
-									result="Clicked on file type object in firefox";
+									executor.executeScript("arguments[0].click();", Vars.elem);
+									result = "Clicked on file type object in firefox";
 									Vars.setExecutionStatus(Constant.Passed);
 									Vars.setExecutionResult(result);
 									Vars.setRes_type(Constant.Executed);
@@ -808,23 +847,44 @@ public class KeywordAction extends KeywordLibrary {
 								} else if (Vars.elem.getAttribute("type").toLowerCase().equals("file")
 										&& Vars.getbrowsername().equalsIgnoreCase("ie")
 										&& Integer.parseInt(Vars.getBrowserVer()) == 8) {
-									result="Clicked on file type object in IE";
+									result = "Clicked on file type object in IE";
 									Vars.setExecutionStatus(Constant.Passed);
 									Vars.setExecutionResult(result);
 									Vars.setRes_type(Constant.Executed);
-								}
-								else{
-									/*Vars.elem.sendKeys(Keys.SHIFT);*/
-									Vars.elem.click();
-									result="Clicked on :"+ ObjectName;
+								} else {
+									/* Vars.elem.sendKeys(Keys.SHIFT); */
+									if (!ObjectTestData.isEmpty() && ObjectTestData.equalsIgnoreCase("on")
+											&& ObjectType.equalsIgnoreCase("checkbox")) {
+										boolval = Vars.elem.isSelected();
+										if (!boolval) {
+											Vars.elem.click();
+											result = "Checkbox has been checked :" + ObjectName;
+										} else {
+											result = "Checkbox is alredy clicked on :" + ObjectName;
+										}
+
+									} else if (!ObjectTestData.isEmpty()
+											&& ObjectTestData.equalsIgnoreCase("off")
+											&& ObjectType.equalsIgnoreCase("checkbox")) {
+										boolval = Vars.elem.isSelected();
+										if (boolval) {
+											Vars.elem.click();
+											result = "Checkbox has been unchecked :" + ObjectName;
+										} else {
+											result = "Checkbox is alredy unchecked :" + ObjectName;
+										}
+									} else {
+										Vars.elem.click();
+										result = "Clicked on :" + ObjectName;
+									}
 									Vars.setExecutionStatus(Constant.Passed);
 									Vars.setExecutionResult(result);
 									Vars.setRes_type(Constant.Executed);
 								}
 							}
-							else{
+							else {
 								Vars.elem.click();
-								result="Clicked on :" + ObjectName;
+								result = "Clicked on :" + ObjectName;
 								Vars.setExecutionStatus(Constant.Passed);
 								Vars.setExecutionResult(result);
 								Vars.setRes_type(Constant.Executed);
@@ -1117,6 +1177,10 @@ public class KeywordAction extends KeywordLibrary {
 			}
 		} catch (Exception e) {
 			result="Exception in perfoming an event " +Vars.Event + " " +e.getMessage();
+			if(Vars.Event.equalsIgnoreCase("set")){
+				Constant.Vars.robot.keyPress(KeyEvent.VK_2);
+				Constant.Vars.robot.keyRelease(KeyEvent.VK_2);
+			}
 			Vars.setExecutionStatus(Constant.Blocked);
 			Vars.setExecutionResult(result);
 			Vars.setRes_type(Constant.Blocked);
@@ -1251,13 +1315,13 @@ public class KeywordAction extends KeywordLibrary {
 		try{
 			String result = "";
 			if (Vars.map.containsKey(ObjectValCh)) 
-				ObjectValCh = Vars.getVariableDate(ObjectValCh);
+				ObjectValCh = Vars.getVariableData(ObjectValCh);
 			else if(! Utils.isInteger(ObjectValCh)){
 				Vars.setVariableData(ObjectValCh,"0");
 				ObjectValCh = "0";
 			}
 			if (Vars.map.containsKey(ObjectTestDataCh)) 
-				ObjectTestDataCh = Vars.getVariableDate(ObjectTestDataCh);
+				ObjectTestDataCh = Vars.getVariableData(ObjectTestDataCh);
 			else if(! Utils.isInteger(ObjectTestDataCh)){
 				Vars.setVariableData(ObjectTestDataCh,"0");
 				//ObjectTestDataCh = "0";
@@ -1308,6 +1372,17 @@ public class KeywordAction extends KeywordLibrary {
 				result = 100 * Integer.parseInt(ObjectTestDataCh) /  Integer.parseInt(ObjectValCh) + "";
 				//result = Integer.parseInt(ObjectValCh) *  Integer.parseInt(ObjectTestDataCh) / 100 + "";
 				break;
+			default:
+				if(Utils.isDate(ObjectValCh)){
+					SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
+					Calendar c = Calendar.getInstance();
+					c.setTime(sdf.parse(ObjectValCh));
+					result = sdf.format(c.getTime());  // dt is now the new date
+				}
+				else{
+					result = ObjectValCh;
+				}
+				break;
 			}
 			Vars.setVariableData(objectType, result + "");
 			result = "Arithmetic expression has been performed " + objectType + " got " + result;
@@ -1351,8 +1426,8 @@ public class KeywordAction extends KeywordLibrary {
 			result="";
 			//if we need to validate a value against a variable we reterive variable value from var map
 			if (!ObjectTestDataCh.isEmpty() && ObjectTestDataCh.substring(0, 1).equalsIgnoreCase("#") && Vars.getAction().equals("check")) {
-				if (Vars.getVariableDate(ObjectTestDataCh.substring(1,(ObjectTestDataCh.length()))) != null) {
-					ObjectTestDataCh = Vars.getVariableDate(ObjectTestDataCh.substring(1,(ObjectTestDataCh.length())));
+				if (Vars.getVariableData(ObjectTestDataCh.substring(1,(ObjectTestDataCh.length()))) != null) {
+					ObjectTestDataCh = Vars.getVariableData(ObjectTestDataCh.substring(1,(ObjectTestDataCh.length())));
 				}
 			}
 			//look for object type is page or dialog set objfound to 1
@@ -1364,16 +1439,16 @@ public class KeywordAction extends KeywordLibrary {
 				if(ObjectValCh.equalsIgnoreCase("contains") || ObjectValCh.equalsIgnoreCase("equals") || ObjectValCh.equalsIgnoreCase("not equals"))
 				{
 					Vars.objFoundFlag = 0;
-					if (Vars.getVariableDate(objectType.substring(1,(objectType.length()))) != null) {
-						objectType = Vars.getVariableDate(objectType.substring(1,(objectType.length())));
+					if (Vars.getVariableData(objectType.substring(1,(objectType.length()))) != null) {
+						objectType = Vars.getVariableData(objectType.substring(1,(objectType.length())));
 					} else {
 						if (objectType.contains("\""))
 							objectType = objectType.replace("\"", "");
 						else
 							objectType = "";
 					}
-					if (Vars.getVariableDate(ObjectEventCh.substring(1,(ObjectEventCh.length()))) != null) {
-						ObjectEventCh = Vars.getVariableDate(ObjectEventCh.substring(1,(ObjectEventCh.length())));
+					if (Vars.getVariableData(ObjectEventCh.substring(1,(ObjectEventCh.length()))) != null) {
+						ObjectEventCh = Vars.getVariableData(ObjectEventCh.substring(1,(ObjectEventCh.length())));
 					} else {
 						if (ObjectEventCh.contains("\""))
 							ObjectEventCh = ObjectEventCh.replace("\"", "");
@@ -1507,7 +1582,7 @@ public class KeywordAction extends KeywordLibrary {
 									bflag = true;
 								}
 								if (bflag) {
-									result = "Attribute has been found";
+									result = "Attribute has been found: " + elemAttribute;
 									Vars.setExecutionStatus(Constant.Passed);
 									Vars.setExecutionResult(result);
 									Vars.setRes_type(Constant.Executed);
@@ -1540,19 +1615,19 @@ public class KeywordAction extends KeywordLibrary {
 								Vars.setRes_type(Constant.Missing);
 								break;
 							}
-							if (expval.equalsIgnoreCase(actval)) {
+							/*if (expval.equalsIgnoreCase(actval)) {
 								result = "Actual value matches with expected value. " + " Actual Value is " + actval
 										+ " and expected value is " + expval;
-								Vars.setExecutionResult(result);
-								Vars.setExecutionStatus(Constant.Passed);
-								Vars.setRes_type(Constant.Executed);
+								//Vars.setExecutionResult(result);
+								//Vars.setExecutionStatus(Constant.Passed);
+								//Vars.setRes_type(Constant.Executed);
 							} else {
 								result = "Actual value does not matche with expected value. " + " Actual Value is "
 										+ actval + " and expected value is " + expval;
 								Vars.setExecutionResult(result);
 								Vars.setExecutionStatus(Constant.Failed);
 								Vars.setRes_type(Constant.Failed);
-							}
+							}*/
 
 						}
 					}
@@ -1607,14 +1682,13 @@ public class KeywordAction extends KeywordLibrary {
 
 					} else if (objectType.equalsIgnoreCase("combobox")
 							|| objectType.equalsIgnoreCase("listbox")) {
-						List<WebElement> selectedList = new Select(Vars.elem).getOptions();
+						List<WebElement> selectedList = new Select(Vars.elem).getAllSelectedOptions();
 						actval = selectedList.get(0).getText();
-						actval = selectedList.get(0).getAttribute("value");
-						if(selectedList.size() > 1) {
+						/*if(selectedList.size() > 1) {
 							for(int i = 1; i < selectedList.size(); i++) {
 								actval += ":" + selectedList.get(i).getText();
 							}
-						}
+						}*/
 					} else {
 						result="Object not found " + ObjectValCh;
 						Vars.setExecutionStatus(Constant.Failed);
@@ -1658,7 +1732,7 @@ public class KeywordAction extends KeywordLibrary {
 						boolval = Vars.elem.isDisplayed();
 						actval = boolval.toString();
 					} else {
-						result="Object not Found " + ObjectValCh;
+						result="Object not Supported " + ObjectValCh;
 						Vars.setExecutionStatus(Constant.Failed);
 						Vars.setExecutionResult(result);
 						Vars.setRes_type(Constant.Failed);
@@ -1753,6 +1827,8 @@ public class KeywordAction extends KeywordLibrary {
 					break;
 				case Constant.Rowcount:
 					List<WebElement> rows = Vars.elem.findElements(By.tagName("tr"));
+					WebElement web = Vars.elem.findElement(By.tagName("tbody"));
+					rows =web.findElements(By.tagName("tr"));
 					Integer rowCount = rows.size();
 					if (rowCount == 0) {
 						// WebElement rows1=elem.findElement(By.tagName("tr"));
@@ -1842,6 +1918,18 @@ public class KeywordAction extends KeywordLibrary {
 					}
 					break;
 				case Constant.Getattribute:
+					if(ObjectValCh.toLowerCase().contains("listbox") || ObjectValCh.toLowerCase().contains("listbox") || ObjectValCh.toLowerCase().contains("dropbox")) 
+					{
+						List<WebElement> selectedList = new Select(Vars.elem).getOptions();
+						actval = selectedList.get(0).getAttribute(objectType);
+						if(selectedList.size() > 1) {
+							for (int i = 1; i < selectedList.size(); i++) {
+								actval += ":" + selectedList.get(i).getAttribute(objectType);
+							}
+						}
+					} else {
+							actval = Vars.elem.getAttribute(objectType);
+						}  
 					break;
 				default:
 					actval = "Invalid syntax";
@@ -1960,7 +2048,7 @@ public class KeywordAction extends KeywordLibrary {
 			} else if ((Vars.getAction()).equalsIgnoreCase("storevalue")) {
 				varname = ObjectTestDataCh.replace("#", "");
 				if (actval.equalsIgnoreCase("Invalid syntax")) {
-					result="Object is missing";
+					result="Object is missing : Invalid syntax";
 					Vars.setExecutionStatus(Constant.Caution);
 					Vars.setExecutionResult(result);
 					Vars.setRes_type(Constant.Missing);
@@ -2011,10 +2099,10 @@ public class KeywordAction extends KeywordLibrary {
 	public static String func_IfCondition(String strOperation) throws Exception {
 
 		int iFlag = 1;
-		String value1 = Constant.Vars.Obj;
+		String value1 = Constant.Vars.Obj.replaceAll("\"","");
 		String value2 = Constant.Vars.Event.replaceAll("\"","");
 		if(value2.contains("#")){
-			value2=Constant.Vars.getVariableDate(value2.replace("#", ""));
+			value2=Constant.Vars.getVariableData(value2.replace("#", ""));
 			if( value2==null){
 				value2="";				
 			}
@@ -2022,12 +2110,15 @@ public class KeywordAction extends KeywordLibrary {
 		strOperation = strOperation.toLowerCase().trim();
 		switch (strOperation.toLowerCase()) {
 		case "contains":
-			if (value1.substring(0, 1).equalsIgnoreCase("#")) {
+			if (!value1.isEmpty() && value1.substring(0, 1).equalsIgnoreCase("#")) {
 
-				value1 = Constant.Vars.getVariableDate(value1.substring(1, (value1.length())));
+				value1 = Constant.Vars.getVariableData(value1.substring(1, (value1.length())));
 				result = "Variable used in condition statement has value: "
 						+ value1;
-				Constant.Vars.setExecutionStatus(result);
+				Constant.Vars.setExecutionResult(result);
+				if( value1==null){
+					value1="";				
+				}
 				if (null != value1 && value1.trim().contains(value2.trim())) {
 					iFlag = 0;
 				}
@@ -2038,12 +2129,15 @@ public class KeywordAction extends KeywordLibrary {
 		case "=":
 		case "equals to":
 		case Constant.Equals:
-			if (value1.substring(0, 1).equalsIgnoreCase("#")) {
+			if (!value1.isEmpty() && value1.substring(0, 1).equalsIgnoreCase("#")) {
 
-				value1 = Constant.Vars.getVariableDate(value1.substring(1, (value1.length())));
+				value1 = Constant.Vars.getVariableData(value1.substring(1, (value1.length())));
 				result = "Variable used in condition statement has value: "
 						+ value1;
-				Constant.Vars.setExecutionStatus(result);
+				Constant.Vars.setExecutionResult(result);
+				if( value1==null){
+					value1="";				
+				}
 				if (null != value1 && value1.trim().equalsIgnoreCase(value2.trim())) {
 
 					iFlag = 0;
@@ -2054,11 +2148,14 @@ public class KeywordAction extends KeywordLibrary {
 			break;
 		case "!=":
 		case Constant.Notequals:
-			if (value1.substring(0, 1).equalsIgnoreCase("#")) {
-				value1 = Constant.Vars.getVariableDate(value1.substring(1, (value1.length())));
+			if (!value1.isEmpty() && value1.substring(0, 1).equalsIgnoreCase("#")) {
+				value1 = Constant.Vars.getVariableData(value1.substring(1, (value1.length())));
 				result  = "Variable used in condition statement has values: "
 						+ value1;
-				Constant.Vars.setExecutionStatus(result);
+				Constant.Vars.setExecutionResult(result);
+				if( value1==null){
+					value1="";				
+				}
 				if (!value1.trim().equalsIgnoreCase(value2.trim())) {
 
 					iFlag = 0;
@@ -2071,8 +2168,11 @@ public class KeywordAction extends KeywordLibrary {
 		case ">":
 		case Constant.Greater_than:
 		case Constant.Greaterthan:
-			if (value1.substring(0, 1).equalsIgnoreCase("#")) {
-				value1 = Constant.Vars.getVariableDate(value1.substring(1, (value1.length())));
+			if (!value1.isEmpty() && value1.substring(0, 1).equalsIgnoreCase("#")) {
+				value1 = Constant.Vars.getVariableData(value1.substring(1, (value1.length())));
+				if( value1==null){
+					value1="";				
+				}
 				if (isInteger(value1) && isInteger(value2)) {
 					if (Integer.parseInt(value1) > Integer.parseInt(value2)) {
 						iFlag = 0;
@@ -2096,8 +2196,11 @@ public class KeywordAction extends KeywordLibrary {
 		case "<":
 		case Constant.Less_than:
 		case Constant.Lessthan:
-			if (value1.substring(0, 1).equalsIgnoreCase("#")) {
-				value1 = Constant.Vars.getVariableDate(value1.substring(1, (value1.length())));
+			if (!value1.isEmpty() && value1.substring(0, 1).equalsIgnoreCase("#")) {
+				value1 = Constant.Vars.getVariableData(value1.substring(1, (value1.length())));
+				if( value1==null){
+					value1="";				
+				}
 				if (isInteger(value1) && isInteger(value2)) {
 					if (Integer.parseInt(value1) < Integer.parseInt(value2)) {
 						iFlag = 0;
@@ -2149,6 +2252,9 @@ public class KeywordAction extends KeywordLibrary {
 		// Robot robot = new Robot();
 		String browserName = Vars.getbrowsername();
 		String cCellData = Vars.getObj();
+		if(Vars.getObj().contains("#")){
+			cCellData =  Vars.getVariableData(cCellData.substring(1, (cCellData.length())));
+		}
 		if (browserName.equalsIgnoreCase("firefox")) {
 			switch (action1) {
 			case Constant.Upload: //uploading the external file in browser
@@ -2209,6 +2315,8 @@ public class KeywordAction extends KeywordLibrary {
 				break;
 
 			case Constant.Download:
+				String fileDownloadExePath = new File(Constant.filedownloadexecpath)
+                .getAbsolutePath();
 				/*Runtime.getRuntime().exec(
 						Constant.execpath + " 2 download " + ObjectEvent + " "
 								+ browserName.toLowerCase() + " "
@@ -2216,11 +2324,12 @@ public class KeywordAction extends KeywordLibrary {
 				Constant.Vars.elem.click();
 				Thread.sleep(10000);
 				//if(null != Constant.Vars.getEvent() && !Constant.Vars.getEvent().isEmpty() && Constant.Vars.getEvent().equals("dialog")){
-					Runtime.getRuntime().exec(Constant.filedownloadexecpath);
-					Thread.sleep(20000);
+					Runtime.getRuntime().exec(fileDownloadExePath);
+					Thread.sleep(50000);
 				//}
-				ExcelUtils.lastFileModified(Constant.tempTestReportPath,Vars.getTestdata());
-				result="File Downloaded";
+				String filename;
+				filename = ExcelUtils.lastFileModified(Constant.tempTestReportPath,Vars.getTestdata());
+				result="File Downloaded : " + filename;
 				Vars.setExecutionStatus(Constant.Passed);
 				Vars.setExecutionResult(result);
 				Vars.setRes_type(Constant.Executed);
@@ -2376,7 +2485,7 @@ public class KeywordAction extends KeywordLibrary {
 					Resetloop();
 				}
 			}
-		result="End of Loop : " + Vars.loopsize + " : Loop count : " + Vars.loopcount[Vars.loopsize-1];
+		result="End of Loop : " + Vars.loopsize + " : Loop count : " + Vars.loopcount[Vars.loopsize];
 		Vars.setExecutionStatus(Constant.Passed);
 		Vars.setExecutionResult(result);
 		Vars.setRes_type(Constant.Executed);
@@ -2466,6 +2575,17 @@ public class KeywordAction extends KeywordLibrary {
 		try{
 			boolean parameter = false;
 			String sqlquery = vars.getObj();
+			//@@@@@
+			//host_name + "#d;b@" + dbName + "#d;b@" + schemaname + "#d;b@" + dbUsername + "#d;b@" + dbPassword;
+			String[] dbValues = vars.obj.getDatabaseDetails().split("#d;b@");
+			if (dbValues.length > 0 && dbValues.length == 5){
+				vars.host_name = dbValues[0];
+				vars.database = dbValues[1];
+				vars.schemaname = dbValues[2];
+				vars.username = dbValues[3];
+				vars.password = dbValues[4];
+			}
+				
 			if((vars.database.equalsIgnoreCase("mssql"))||(vars.database.equalsIgnoreCase("mysql"))){
 				vars.isinvaliddb = true;
 			}else{
@@ -2752,9 +2872,9 @@ public class KeywordAction extends KeywordLibrary {
 			if (ObjectTestData.length() > 0)
 			{
 				if (ObjectTestData.substring(0, 1).equalsIgnoreCase("#")) {
-					if (Constant.Vars.getVariableDate(ObjectTestData.substring(1,
+					if (Constant.Vars.getVariableData(ObjectTestData.substring(1,
 							(ObjectTestData.length()))) != null) {
-						ObjectTestData = Constant.Vars.getVariableDate(ObjectTestData.substring(1,
+						ObjectTestData = Constant.Vars.getVariableData(ObjectTestData.substring(1,
 								(ObjectTestData.length())));
 					} else {
 						ObjectTestData = "";
@@ -2943,25 +3063,43 @@ public class KeywordAction extends KeywordLibrary {
 			if ("default".equals(ObjectName)) {
 				Constant.driver.switchTo().defaultContent();
 				result="Default Frame Identified";
+				vars.setExecutionStatus(Constant.Passed);
+				vars.setExecutionResult(result);
+				vars.setRes_type(Constant.Executed);
 			} else if (ObjectName.matches("^[0-9]+") == true) {
 				Constant.driver.switchTo().frame(new Integer(ObjectName));
 				result="Frame Identified " + ObjectName;
-			} else if (ObjectType.equalsIgnoreCase("browser"))
+				vars.setExecutionStatus(Constant.Passed);
+				vars.setExecutionResult(result);
+				vars.setRes_type(Constant.Executed);
+			} else if (ObjectType.equalsIgnoreCase("browser")){
 				result="Set to parent frame";
-			else {
-				vars.elem =  vars.obj.findelement(vars.obj.getLocator(ObjectName));
-				Constant.driver.switchTo().frame(vars.elem);
-				result="Frame Identified";
+				vars.setExecutionStatus(Constant.Passed);
+				vars.setExecutionResult(result);
+				vars.setRes_type(Constant.Executed);
 			}
-			vars.setExecutionStatus(Constant.Passed);
-			vars.setExecutionResult(result);
-			vars.setRes_type(Constant.Executed);
+			else {
+				vars.elem = vars.obj.findelement(vars.obj.getLocator(ObjectName));
+				if (null != vars.elem) {
+					Constant.driver.switchTo().frame(vars.elem);
+					result = "Frame Identified";
+					vars.setExecutionStatus(Constant.Passed);
+					vars.setExecutionResult(result);
+					vars.setRes_type(Constant.Executed);
+				} else {
+					result = "Frame element is missing";
+					vars.setExecutionStatus(Constant.Caution);
+					vars.setExecutionResult(result);
+					vars.setRes_type(Constant.Caution);
+				}
+			}
+			
 		}
 		else {
 			try {
 				if (ObjectTestData.substring(0, 1).equalsIgnoreCase("#")) {
-					if (vars.getVariableDate(ObjectTestData.substring(1, (ObjectTestData.length()))) != null) {
-						ObjectTestData = vars.getVariableDate(ObjectTestData.substring(1, (ObjectTestData.length())));
+					if (vars.getVariableData(ObjectTestData.substring(1, (ObjectTestData.length()))) != null) {
+						ObjectTestData = vars.getVariableData(ObjectTestData.substring(1, (ObjectTestData.length())));
 					} else {
 						ObjectTestData = "";
 					}
@@ -3141,7 +3279,7 @@ public class KeywordAction extends KeywordLibrary {
 		String strNumber = "";
 		try {
 			if (null != strObj) {
-				strText = Vars.getVariableDate(strObj);
+				strText = Vars.getVariableData(strObj);
 				Pattern pt = Pattern.compile(strTestData.replace("\\\\", "\\"), Pattern.CASE_INSENSITIVE);
 				Matcher mt = null;
 				if (!strText.isEmpty()) {
@@ -3208,11 +3346,11 @@ public class KeywordAction extends KeywordLibrary {
 		if(objectType.contains("row")){
 			row = Integer.parseInt(objectType.split(" ")[1].trim()); 
 		}
-		if (ObjectEventCh.contains("#") && Vars.getVariableDate(ObjectEventCh.substring(1,(ObjectEventCh.length()))) != null) {
-			ObjectEventCh = Vars.getVariableDate(ObjectEventCh.substring(1,(ObjectEventCh.length())));
+		if (ObjectEventCh.contains("#") && Vars.getVariableData(ObjectEventCh.substring(1,(ObjectEventCh.length()))) != null) {
+			ObjectEventCh = Vars.getVariableData(ObjectEventCh.substring(1,(ObjectEventCh.length())));
 		}
-		if (ObjectValCh.contains("#") && Vars.getVariableDate(ObjectValCh.substring(1,(ObjectValCh.length()))) != null) {
-			ObjectValCh = Vars.getVariableDate(ObjectValCh.substring(1,(ObjectValCh.length())));
+		if (ObjectValCh.contains("#") && Vars.getVariableData(ObjectValCh.substring(1,(ObjectValCh.length()))) != null) {
+			ObjectValCh = Vars.getVariableData(ObjectValCh.substring(1,(ObjectValCh.length())));
 		}
 		bflag = ExcelUtils.readDataFromFile(ObjectTestDataCh, row, col, ObjectEventCh, ObjectValCh, strContain);
 		if(bflag){
@@ -3237,7 +3375,7 @@ public class KeywordAction extends KeywordLibrary {
 		String ObjectValCh = Vars.getObjProp();
 		String strSwapValue = "";
 		if (ObjectValCh.contains("#")) {
-			ObjectValCh = Vars.getVariableDate(ObjectValCh.substring(1, (ObjectValCh.length())));
+			ObjectValCh = Vars.getVariableData(ObjectValCh.substring(1, (ObjectValCh.length())));
 		}
 		String strSwap[] = ObjectValCh.split(" ");
 		for (int i = strSwap.length - 1; i>=0; i--) {
@@ -3258,6 +3396,14 @@ public class KeywordAction extends KeywordLibrary {
 	 */
 	public static void spexecute(LocalTC vars){
 		try{
+			String[] dbValues = vars.obj.getDatabaseDetails().split("#d;b@");
+			if (dbValues.length > 0 && dbValues.length == 5){
+				vars.host_name = dbValues[0];
+				vars.database = dbValues[1];
+				vars.schemaname = dbValues[2];
+				vars.username = dbValues[3];
+				vars.password = dbValues[4];
+			}
 			if((vars.database.equalsIgnoreCase("mssql"))||(vars.database.equalsIgnoreCase("mysql"))){
 				vars.isinvaliddb = true;
 			}else{
@@ -3324,47 +3470,83 @@ public class KeywordAction extends KeywordLibrary {
 			String ObjectValCh = Vars.getObjProp();
 			String objTypeFilePath = "";
 			String objValChFilePath = "";
+			String SourceCol = "";
+			String DestCol = "";
 			String line = "";
 			String strCompareFileFlag = "";
 			String strResultMessage = "";
 			Process process = null;
+			String command = "";
 			String strRes = "";
+			String strContainsCol = "";
+			String path = new File(Constant.compareFile)
+	                .getAbsolutePath();
 			if (ObjectValCh.contains("#")) {
-				ObjectValCh = Vars.getVariableDate(ObjectValCh.substring(1, (ObjectValCh.length())));
+				ObjectValCh = Vars.getVariableData(ObjectValCh.substring(1, (ObjectValCh.length())));
 				objValChFilePath = (Constant.tempTestReportPath + ObjectValCh);
 			} else {
 				objValChFilePath = ObjectValCh;
 			}
 			if (objectType.contains("#")) {
-				objectType = Vars.getVariableDate(objectType.substring(1, (objectType.length())));
+				objectType = Vars.getVariableData(objectType.substring(1, (objectType.length())));
 				objTypeFilePath = (Constant.tempTestReportPath + objectType);
-				Constant.Vars.map.get(objectType);
+				//Constant.Vars.map.get(objectType);
 			} else {
 				objTypeFilePath = objectType;
 			}
-			if(Vars.getEvent().contains("(") && Vars.getEvent().contains(")")){
+			/*if(Vars.getEvent().contains("(") && Vars.getEvent().contains(")")){
 				objTypeFilePath = getDateFormat(objTypeFilePath, Vars.getEvent());
 				Vars.setEvent(Vars.getEvent().replaceAll("\\(.*\\)", ""));
 			}
 			if(Vars.getTestdata().contains("(") && Vars.getTestdata().contains(")")){
 				objValChFilePath = getDateFormat(objValChFilePath, Vars.getTestdata());
 				Vars.setTestdata(Vars.getTestdata().replaceAll("\\(.*\\)", ""));
-			}
+			}*/
 			if (!objectType.isEmpty() && !ObjectValCh.isEmpty() && new File(objValChFilePath.toString()).exists() && new File(objTypeFilePath.toString()).exists()) {
 				if (!Vars.getTestdata().isEmpty() && !Vars.getEvent().isEmpty()) {
+					SourceCol=Vars.getEvent();
+					DestCol=Vars.getTestdata();
+					if(DestCol.contains("contains") || DestCol.contains("Contains")){
+						String[] strDestol = DestCol.split(",");
+						for(int i=0; i<strDestol.length; i++){
+							if(strDestol[i].contains("contains") || strDestol[i].contains("Contains")){
+							if(strContainsCol.isEmpty()){
+								strContainsCol = strDestol[i];
+							}else{
+								strContainsCol = strContainsCol + "," + strDestol[i];
+							}
+							DestCol = DestCol.replace(strDestol[i], "");
+							}
+							
+						}
+						DestCol = DestCol.replaceAll(",,|, ,", ",");
+						if(DestCol.endsWith(","))
+						{
+							DestCol = DestCol.substring(0,DestCol.length() - 1);
+						}
+						command = path + " " + "\"" + objTypeFilePath + "\"" + " " + "\""
+								+ SourceCol + "\"" + " " + "\"" + objValChFilePath + "\"" + " " + "\""
+								+ DestCol + "\"" + " " + "\"" + strContainsCol + "\"";
+						process = Runtime.getRuntime()
+								.exec(command);
+					}else{
+					command = path + " " + "\"" + objTypeFilePath + "\"" + " " + "\""
+							+ SourceCol + "\"" + " " + "\"" + objValChFilePath + "\"" + " " + "\""
+							+ DestCol + "\"";
 					process = Runtime.getRuntime()
-							.exec(Constant.compareFile + " " + "\"" + objTypeFilePath + "\"" + " " + "\""
-									+ Vars.getEvent() + "\"" + " " + "\"" + objValChFilePath + "\"" + " " + "\""
-									+ Vars.getTestdata() + "\"");
+							.exec(command);
+					}
 				} else {
-					process = Runtime.getRuntime().exec(Constant.compareFile + " " + "\"" + objTypeFilePath + "\"" + " "
-							+ "\" \"" + " " + "\"" + objValChFilePath + "\"" + " " + "\" \"");
+					command = path + " " + "\"" + objTypeFilePath + "\"" + " "
+							+ "\" \"" + " " + "\"" + objValChFilePath + "\"" + " " + "\" \"";
+					process = Runtime.getRuntime().exec(command);
 				}
 			}else if(!objectType.isEmpty() && ObjectValCh.isEmpty() && new File(objTypeFilePath.toString()).exists()){
 				if (!Vars.getEvent().isEmpty()) {
+					command = path + " " + "\"" + objTypeFilePath + "\"" + " " + "\""
+							+ Vars.getEvent() + "\"";
 					process = Runtime.getRuntime()
-							.exec(Constant.compareFile + " " + "\"" + objTypeFilePath + "\"" + " " + "\""
-									+ Vars.getEvent() + "\"");
+							.exec(command);
 				} 
 			}	
 			else {
@@ -3387,18 +3569,18 @@ public class KeywordAction extends KeywordLibrary {
 				}
 			}
 			if (strCompareFileFlag.equalsIgnoreCase("true")) {
-				result = "File has been compare successfully: " + strCompareFileFlag;
+				result = "File has been compare successfully: " + strCompareFileFlag + ", command: " + command;
 				Vars.setExecutionStatus(Constant.Passed);
 				Vars.setExecutionResult(result);
 				Vars.setRes_type(Constant.Executed);
 			} else {
-				result = "File comparision failed: " + strCompareFileFlag + ", message: " + strResultMessage;
+				result = "File comparision failed: " + strCompareFileFlag + ", message: " + strResultMessage + ", command: " + command;
 				Vars.setExecutionStatus(Constant.Failed);
 				Vars.setExecutionResult(result);
 				Vars.setRes_type(Constant.Failed);
 			}
 		} catch (Exception ex) {
-			result = "File has not compare, getting exception: " + ex.getMessage();
+			result = "File has not compare, getting exception: " + ex.getMessage() ;
 			Vars.setExecutionStatus(Constant.Failed);
 			Vars.setExecutionResult(result);
 			Vars.setRes_type(Constant.Failed);
@@ -3418,7 +3600,7 @@ public class KeywordAction extends KeywordLibrary {
 	 * @throws IOException
 	 * @throws ParseException
 	 */
-	public static String getDateFormat(String filePath, String columns) throws IOException, ParseException{
+	/*public static String getDateFormat(String filePath, String columns) throws IOException, ParseException{
 		String dateFormat = "";
 		String[] strArray = columns.split(",");
 		for(String strData : strArray){
@@ -3431,7 +3613,7 @@ public class KeywordAction extends KeywordLibrary {
 			}	
 		}
 		return null;
-	}
+	}*/
 	/**
 	 * @param Vars
 	 */
@@ -3451,4 +3633,78 @@ public class KeywordAction extends KeywordLibrary {
 			Vars.setRes_type(Constant.Passed);
 		}
 	}
+	
+	public static void fnSendKey(LocalTC Vars){
+		
+		// create robot for keyboard operations
+		try {
+			Robot rb = new Robot();
+			String strEventName = "VK_" + Vars.getObj().toUpperCase();
+			if (!Vars.getObjProp().isEmpty()) {
+				Vars.Locator = Vars.obj.getLocator(Vars.getObjProp().replace("obj=", "").toLowerCase());
+				if (null != Vars.Locator)
+					Vars.elem = Vars.obj.findelement(Vars.Locator);
+			}
+			Field[] fields = KeyEvent.class.getDeclaredFields();
+			for (Field f : fields) {
+				if (Modifier.isStatic(f.getModifiers())) {
+					if (strEventName.equals(f.getName())) {
+						if (null != Vars.elem) {
+							Vars.elem.sendKeys(strEventName);
+						} else {
+							rb.keyPress(KeyEvent.class.getField(f.getName()).getInt(strEventName));
+							rb.keyPress(KeyEvent.VK_ENTER);
+						}
+						break;
+					}
+				}
+			}
+			
+			result = "Given key has been operated" + Vars.getObj();
+			Vars.setExecutionStatus(Constant.Passed);
+			Vars.setExecutionResult(result);
+			Vars.setRes_type(Constant.Passed);
+		} catch (Exception ex) {
+			result = "Key has not been operated. Exception occurs: " + ex.getMessage();
+			Vars.setExecutionStatus(Constant.Failed);
+			Vars.setExecutionResult(result);
+			Vars.setRes_type(Constant.Failed);
+		}
+	}
+	
+	/**
+	 * @param Vars
+	 * @throws Exception
+	 * method for replacing given data with the other data from the string and store it into other variable
+	 */
+	public static void replaceData(LocalTC Vars) throws Exception {
+		try {
+			ObjectName = Vars.getObjProp();
+			ObjectType = Vars.getObj();
+			ObjectEvent = Vars.Event;
+			ObjectTestData = Vars.getTestdata().replace("\"", "");
+			String strReplace = "";
+			if (ObjectName.startsWith("#")) {
+				ObjectName = Vars.getVariableData(ObjectName.replace("#", ""));
+			}
+			if (ObjectName.contains(ObjectEvent)) {
+				Vars.setVariableData(ObjectType.replace("#", ""),
+						ObjectName.replaceAll(ObjectEvent, ObjectTestData));
+			}
+
+			result = "Object has been replace with " + ObjectTestData + "and store into "
+					+ ObjectType;
+			Vars.setExecutionStatus(Constant.Passed);
+			Vars.setExecutionResult(result);
+			Vars.setRes_type(Constant.Executed);
+		} catch (Exception ex) {
+			result = "Object has been replace. Exception occurs: " + ex.getMessage();
+			Vars.setExecutionStatus(Constant.Failed);
+			Vars.setExecutionResult(result);
+			Vars.setRes_type(Constant.Failed);
+		}
+	}
+	
+	
+	
 }

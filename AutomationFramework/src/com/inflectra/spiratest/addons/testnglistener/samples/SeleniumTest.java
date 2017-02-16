@@ -1,8 +1,8 @@
 package com.inflectra.spiratest.addons.testnglistener.samples;
 
-import org.testng.annotations.*;
+/*import org.testng.annotations.*;
 import static org.testng.AssertJUnit.*;
-import com.thoughtworks.selenium.*;
+import com.thoughtworks.selenium.*;*/
 
 import com.inflectra.spiratest.addons.testnglistener.*;
 
@@ -13,7 +13,7 @@ import com.inflectra.spiratest.addons.testnglistener.*;
  * @version		3.0.0
  *
  */
-@SpiraTestConfiguration(
+/*@SpiraTestConfiguration(
 url="https://impellam.spiraservice.net",
 login="bharat.sethi",
 password="Password",
@@ -21,10 +21,10 @@ projectId=75,
 releaseId=587,
 testSetId=-1,
 runner=RunnerName.Selenium
-)
-@Test(groups={"seleniumtest"})
+)*/
+//@Test(groups={"seleniumtest"})
 public class SeleniumTest
-{
+{/*
     private Selenium selenium;
 
 	@BeforeClass
@@ -59,5 +59,5 @@ public class SeleniumTest
         selenium.click("btnG");
         selenium.waitForPageToLoad("5000");
         assertEquals("Selenium OpenQA - Google Search", selenium.getTitle());
-    }
+    }*/
 }

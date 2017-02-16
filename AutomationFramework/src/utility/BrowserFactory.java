@@ -1,5 +1,8 @@
 package utility;
 
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 /********************************************************************************************************
  * Usage: 	WebDriver driver = BrowserFactory.getBrowser("Firefox");
  * 			BrowserFactory.closeAllDriver();
@@ -9,8 +12,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.net.MalformedURLException;
-import java.net.URL;
 
 import org.openqa.selenium.Capabilities;
 import org.openqa.selenium.WebDriver;
@@ -18,8 +19,10 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxProfile;
 import org.openqa.selenium.ie.InternetExplorerDriver;
+import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
+
 import automationFramework.LocalTC;
 
 public class BrowserFactory extends RemoteWebDriver  {
@@ -31,12 +34,13 @@ public class BrowserFactory extends RemoteWebDriver  {
 	 */
 	public static WebDriver getBrowser(LocalTC Vars) {
 		WebDriver driver = null;
-
+		String driverPath = "";
 		switch (Vars.getbrowsername()) {
 		case "Firefox":
 			driver = drivers.get("Firefox");
 			if (driver == null) {
 				//System.setProperty("webdriver.firefox.bin", "C:\\Users\\mohammad.makki\\AppData\\Local\\Mozilla Firefox\\firefox.exe");
+				//System.setProperty("webdriver.gecko.driver", Constant.FirefoxGeckoDriver);
 				FirefoxProfile profile = new FirefoxProfile();
 				profile.setPreference("browser.download.folderList", 2);
 				profile.setPreference("browser.download.dir", Constant.File_DownloadPath);
@@ -62,13 +66,18 @@ public class BrowserFactory extends RemoteWebDriver  {
 			break;
 		case "IE":
 			driver = drivers.get("IE");
+			driverPath = new File(Constant.ieDriverPath)
+	                .getAbsolutePath();
 			if (driver == null) {
-				System.setProperty("webdriver.ie.driver",Constant.ieDriverPath);
+				
 				DesiredCapabilities capability = DesiredCapabilities.internetExplorer();
+				//capability.setCapability(InternetExplorerDriver.INTRODUCE_FLAKINESS_BY_IGNORING_SECURITY_DOMAINS,true);
+				capability.setCapability(CapabilityType.ACCEPT_SSL_CERTS, true);   
 				capability.setCapability(InternetExplorerDriver.INTRODUCE_FLAKINESS_BY_IGNORING_SECURITY_DOMAINS,true);
 				capability.setCapability("ignoreZoomSetting", true);
 				capability.setCapability("useLegacyInternalServer", true);
 				capability.setCapability("nativeEvents", false);
+				System.setProperty("webdriver.ie.driver",driverPath);
 				driver = new InternetExplorerDriver(capability);
 				driver.getWindowHandle();
 				Capabilities cap = ((RemoteWebDriver) driver).getCapabilities();
@@ -78,8 +87,10 @@ public class BrowserFactory extends RemoteWebDriver  {
 			break;
 		case "Chrome":
 			driver = drivers.get("Chrome");
+			driverPath = new File(Constant.chromeDriverPath)
+	                .getAbsolutePath();
 			if (driver == null) {
-				System.setProperty("webdriver.chrome.driver",Constant.chromeDriverPath);
+				System.setProperty("webdriver.chrome.driver",driverPath);
 				driver = new ChromeDriver();
 				drivers.put("Chrome", driver);
 			}

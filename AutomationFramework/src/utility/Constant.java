@@ -29,11 +29,11 @@ public class Constant
 	public static final String automation_host_token = "IgniteFramework";
 	public static final String KEYWORD_FAIL = "FAIL";
 	public static final String KEYWORD_PASS = "PASS";
-	public static String ieDriverPath = "IEDriverServer.exe";
-	public static String chromeDriverPath = "chromedriver.exe";
+	public static String ieDriverPath = "utility/IEDriverServer.exe";
+	public static String chromeDriverPath = "Drivers/chromedriver.exe";
 	public static final String TestRun = "https://impellam.spiraservice.net/Services/v4_0/RestService.svc/projects/{project_id}/test-runs/create/test_set/{test_set_id}";
 	public static final String TestStatus = "https://impellam.spiraservice.net/Services/v4_0/RestService.svc/projects/{project_id}/test-runs?end_date={end_date}";
-	public static final String execpath = "ObjectRepository/FileManager.exe";
+	public static final String execpath = "utility/FileManager.exe";
 	public static final String filedownloadexecpath="ObjectRepository/FileDownload.exe";
 	public static final String cssPath = "Style/style.css";
 	public static final String espireLogo = "http://www.impellam.com/style%20library/assets/images/logo.gif";
@@ -43,6 +43,9 @@ public class Constant
 	public static final String compareFile = "EvoExlCompare_v2/EvoExlCompare.exe";
 	public static final String testCompleteBatch = "TestComplete/BatchFile/testComplete.bat";
 	public static final String automationFrameworkBatch = "TestComplete/BatchFile/automationFramework.bat";
+	public static final String FirefoxGeckoDriver="Drivers/FirefoxDriver/geckodriver.exe";
+	public static final String WinAuthentication="ObjectRepository/winAuthentication.exe";
+	
 	//Data Sheet Column Numbers
 	public static final int Col_TestCaseID = 0;	
 	public static final int Col_TestScenarioID =1 ;
@@ -84,6 +87,7 @@ public class Constant
 	public static final String CheckVisible = "check visible";
 	public static final String Check = "check";
 	public static final String VerifyEnable = "verify enable";
+	public static final String GoTo = "go to";
 	public static final String CheckEnable = "check enable";
 	public static final String VerifyEnabled = "verify enabled";
 	public static final String CheckEnabled = "check enabled";
@@ -136,6 +140,8 @@ public class Constant
 	public static final String LoopHere = "loop here";
 	public static final String Loop = "loop";
 	public static final String Break = "break";
+	public static final String DragDrop = "drag and drop";
+	public static final String Div = "div";
 	public static final String Endloop = "endloop";
 	public static final String BreakLoop = "break loop";
 	public static final String End_loop = "end loop";
@@ -261,6 +267,9 @@ public class Constant
 	public static final String RunApplication = "run application";
 	public static final String CreateData = "create data";
 	public static final String Debug = "debug";
+	public static final String SendKey = "sendkey";
+	public static final String ReplaceData = "replace data";
+	
 	
 	
 	

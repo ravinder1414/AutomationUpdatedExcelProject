@@ -1,41 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testng-results skipped="0" failed="0" total="1" passed="1">
+<testng-results skipped="0" failed="1" total="1" passed="0">
   <reporter-output>
   </reporter-output>
-  <suite name="IgniteSuite" duration-ms="1062173" started-at="2016-12-02T08:37:30Z" finished-at="2016-12-02T08:55:12Z">
+  <suite name="IgniteSuite" duration-ms="3434" started-at="2016-05-11T15:24:22Z" finished-at="2016-05-11T15:24:25Z">
     <groups>
     </groups>
-    <test name="IgniteTest" duration-ms="1062173" started-at="2016-12-02T08:37:30Z" finished-at="2016-12-02T08:55:12Z">
+    <test name="IgniteTest" duration-ms="3434" started-at="2016-05-11T15:24:22Z" finished-at="2016-05-11T15:24:25Z">
       <class name="automationFramework.FrameworkDriver">
-        <test-method status="PASS" signature="beforeSuite()[pri:0, instance:automationFramework.FrameworkDriver@69b199]" name="beforeSuite" is-config="true" duration-ms="130" started-at="2016-12-02T14:07:30Z" finished-at="2016-12-02T14:07:30Z">
+        <test-method status="PASS" signature="beforeSuite()[pri:0, instance:automationFramework.FrameworkDriver@649d209a]" name="beforeSuite" is-config="true" duration-ms="137" started-at="2016-05-11T16:24:22Z" finished-at="2016-05-11T16:24:22Z">
           <reporter-output>
           </reporter-output>
         </test-method> <!-- beforeSuite -->
-        <test-method status="PASS" signature="loadLocally(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)[pri:0, instance:automationFramework.FrameworkDriver@69b199]" name="loadLocally" is-config="true" duration-ms="399" started-at="2016-12-02T14:07:30Z" finished-at="2016-12-02T14:07:30Z">
+        <test-method status="PASS" signature="loadLocally(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)[pri:0, instance:automationFramework.FrameworkDriver@649d209a]" name="loadLocally" is-config="true" duration-ms="3" started-at="2016-05-11T16:24:22Z" finished-at="2016-05-11T16:24:22Z">
           <params>
             <param index="0">
               <value>
-                <![CDATA[30]]>
+                <![CDATA[75]]>
               </value>
             </param>
             <param index="1">
               <value>
-                <![CDATA[1030]]>
+                <![CDATA[135]]>
               </value>
             </param>
             <param index="2">
               <value>
-                <![CDATA[C:\\temp]]>
+                <![CDATA[230]]>
               </value>
             </param>
             <param index="3">
               <value>
-                <![CDATA[1]]>
+                <![CDATA[16315]]>
               </value>
             </param>
             <param index="4">
               <value>
-                <![CDATA[C:\\Users\\ravinder.kumar\\git\\automationframework\\AutomationFramework\\src\\testData\\Export InvoiceView.xlsx]]>
+                <![CDATA[C:\Users\bharat.sethi\git\salesforceautomation\AutomationFramework\src\testData\SpiraImportTemplate2010.xlsx]]>
               </value>
             </param>
             <param index="5">
@@ -47,19 +47,50 @@
           <reporter-output>
           </reporter-output>
         </test-method> <!-- loadLocally -->
-        <test-method status="PASS" signature="init()[pri:0, instance:automationFramework.FrameworkDriver@69b199]" name="init" is-config="true" duration-ms="126" started-at="2016-12-02T14:07:30Z" finished-at="2016-12-02T14:07:30Z">
+        <test-method status="PASS" signature="init()[pri:0, instance:automationFramework.FrameworkDriver@649d209a]" name="init" is-config="true" duration-ms="0" started-at="2016-05-11T16:24:22Z" finished-at="2016-05-11T16:24:22Z">
           <reporter-output>
           </reporter-output>
         </test-method> <!-- init -->
-        <test-method status="PASS" signature="StartTest()[pri:0, instance:automationFramework.FrameworkDriver@69b199]" name="StartTest" duration-ms="1061021" started-at="2016-12-02T14:07:30Z" finished-at="2016-12-02T14:25:11Z">
+        <test-method status="FAIL" signature="StartTest()[pri:0, instance:automationFramework.FrameworkDriver@649d209a]" name="StartTest" duration-ms="3400" started-at="2016-05-11T16:24:22Z" finished-at="2016-05-11T16:24:25Z">
+          <exception class="java.lang.NullPointerException">
+            <full-stacktrace>
+              <![CDATA[java.lang.NullPointerException
+	at SpiraTest.SpiraReader.ExtractTestSteps(SpiraReader.java:59)
+	at automationFramework.FrameworkDriver.StartTest(FrameworkDriver.java:137)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(Unknown Source)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(Unknown Source)
+	at java.lang.reflect.Method.invoke(Unknown Source)
+	at org.testng.internal.MethodInvocationHelper.invokeMethod(MethodInvocationHelper.java:86)
+	at org.testng.internal.Invoker.invokeMethod(Invoker.java:646)
+	at org.testng.internal.Invoker.invokeTestMethod(Invoker.java:823)
+	at org.testng.internal.Invoker.invokeTestMethods(Invoker.java:1131)
+	at org.testng.internal.TestMethodWorker.invokeTestMethods(TestMethodWorker.java:129)
+	at org.testng.internal.TestMethodWorker.run(TestMethodWorker.java:112)
+	at org.testng.TestRunner.privateRun(TestRunner.java:778)
+	at org.testng.TestRunner.run(TestRunner.java:632)
+	at org.testng.SuiteRunner.runTest(SuiteRunner.java:366)
+	at org.testng.SuiteRunner.runSequentially(SuiteRunner.java:361)
+	at org.testng.SuiteRunner.privateRun(SuiteRunner.java:319)
+	at org.testng.SuiteRunner.run(SuiteRunner.java:268)
+	at org.testng.SuiteRunnerWorker.runSuite(SuiteRunnerWorker.java:52)
+	at org.testng.SuiteRunnerWorker.run(SuiteRunnerWorker.java:86)
+	at org.testng.TestNG.runSuitesSequentially(TestNG.java:1225)
+	at org.testng.TestNG.runSuitesLocally(TestNG.java:1150)
+	at org.testng.TestNG.runSuites(TestNG.java:1075)
+	at org.testng.TestNG.run(TestNG.java:1047)
+	at automationFramework.TestAction.main(TestAction.java:90)
+]]>
+            </full-stacktrace>
+          </exception> <!-- java.lang.NullPointerException -->
           <reporter-output>
           </reporter-output>
         </test-method> <!-- StartTest -->
-        <test-method status="PASS" signature="afterMethod()[pri:0, instance:automationFramework.FrameworkDriver@69b199]" name="afterMethod" is-config="true" duration-ms="576" started-at="2016-12-02T14:25:11Z" finished-at="2016-12-02T14:25:12Z">
+        <test-method status="PASS" signature="afterMethod()[pri:0, instance:automationFramework.FrameworkDriver@649d209a]" name="afterMethod" is-config="true" duration-ms="1" started-at="2016-05-11T16:24:25Z" finished-at="2016-05-11T16:24:25Z">
           <reporter-output>
           </reporter-output>
         </test-method> <!-- afterMethod -->
-        <test-method status="PASS" signature="tearDown()[pri:0, instance:automationFramework.FrameworkDriver@69b199]" name="tearDown" is-config="true" duration-ms="5507" started-at="2016-12-02T14:25:12Z" finished-at="2016-12-02T14:25:18Z">
+        <test-method status="PASS" signature="tearDown()[pri:0, instance:automationFramework.FrameworkDriver@649d209a]" name="tearDown" is-config="true" duration-ms="4" started-at="2016-05-11T16:24:25Z" finished-at="2016-05-11T16:24:25Z">
           <reporter-output>
           </reporter-output>
         </test-method> <!-- tearDown -->

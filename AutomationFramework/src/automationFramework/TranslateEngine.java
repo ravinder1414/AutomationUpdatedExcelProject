@@ -34,8 +34,8 @@ public class TranslateEngine {
 	static LinkedHashMap<String, String> ActionsList;
 	String action;
 	String prvObj;
-	public static final String PatternForBox = "\\b(TextBox|textbox|ComboBox|combobox|TextArea|textarea|Image|image|Frame|frame|iFrame|IFrame|Table|table|element|CheckBox|checkbox|RadioButtonButton|Link|link|ListBox|webelement|title|page|TextElement|dialog|alert|WebElement|xpath|dropdown|commandButton|menuItem)\\b";
-	public static final String regexLaunchapp = "^(https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;/]*[-a-zA-Z0-9+&@#/%=~_|/]";
+	public static final String PatternForBox = "\\b(TextBox|textbox|ComboBox|combobox|TextArea|textarea|Image|image|Frame|frame|iFrame|IFrame|Table|table|element|CheckBox|checkbox|RadioButton|Button|button|radiobutton|Link|link|ListBox|webelement|title|page|TextElement|dialog|alert|WebElement|xpath|dropdown|commandButton|menuItem|form|window)\\b";
+	public static final String regexLaunchapp = "(https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;/]*[-a-zA-Z0-9+&@#/%=~_|/]";
 	public static final String patternEncode = "^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$";
 	public static final String dateRegex = "(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])-[0-9]{4}$";
 	public static final String RegexNumberdata = "[0-9]+";
@@ -82,6 +82,7 @@ public class TranslateEngine {
 		ActionsList.put(Constant.VerifyTableValues,Constant.Comparedbcell);
 		ActionsList.put(Constant.CheckTableValues,Constant.Comparedbcell);  //it will search : compare the text of given object with the data table
 		ActionsList.put(Constant.OpenBrowser,Constant.Launchapp); 			//Launches the given URL
+		ActionsList.put(Constant.GoTo,Constant.Launchapp); 			//Launches the given URL
 		ActionsList.put(Constant.NavigateTo,Constant.Launchapp); 			//Launches the given URL
 		ActionsList.put(Constant.Wait,Constant.Wait);   					//Waits for the given interval 
 		ActionsList.put(Constant.Sleep,Constant.Wait);   					//Waits for the given interval
@@ -103,6 +104,7 @@ public class TranslateEngine {
 		ActionsList.put(Constant.LoopHere,Constant.Loop);	    			//Start of loop
 		ActionsList.put(Constant.Loop,Constant.Loop);	    				//Start of loop
 		ActionsList.put(Constant.Break,Constant.Break);	  
+		ActionsList.put(Constant.DragDrop,Constant.Perform);	
 		ActionsList.put(Constant.Perform,Constant.Perform);				    //Clicks the required object,In some elements, particularly in sub menu items, if  'Click' action doesn't work, use this action.
 		ActionsList.put(Constant.ActionOn,Constant.Perform);
 		ActionsList.put(Constant.Altclick,Constant.Perform);                //We use Java script executor to perform 'click' operation  in tests where the Selenium 'click' method doesn't work
@@ -175,6 +177,8 @@ public class TranslateEngine {
 		ActionsList.put(Constant.RunApplication, Constant.RunApplication);			//Run another application ie. testcomplete
 		ActionsList.put(Constant.CreateData, Constant.CreateData);			//creating data file
 		ActionsList.put(Constant.Debug, Constant.Debug);			//debug
+		ActionsList.put(Constant.SendKey, Constant.SendKey);			//sending the keys
+		ActionsList.put(Constant.ReplaceData, Constant.ReplaceData);			//replace a character from the word
 	}
 
 	public String FindKeyword(LocalTC Vars, String TestStep) throws IOException {
@@ -215,7 +219,7 @@ public class TranslateEngine {
 	 * Where Action = KeyValue
 	 * Obj={act = Split(TestStep," "); loop for all act[i]
 	 * if instr(Keyword,act[i] || act[i] = "with" || act[i] =  ) then ignore 
-	 * else Obj=act[1]   
+	 * else Obj=act[1]   		
 	 * e.g. Open browser with "www.google.com" 	will translate in to 
 	 * Action : launchapp
 	 * Object: Vars.Browsername
@@ -251,13 +255,14 @@ public class TranslateEngine {
 			Vars.setObj(arith[0].trim());
 			Pattern p = Pattern.compile("[-*+%\\/]");
 			Matcher m = p.matcher(arith[1]);
-			while (m.find()) {
+			if (m.find()) {
 				Vars.setEvent(m.group(0));
 				String variables[] = arith[1].split("[-*+%/]");
 				Vars.setObjProp(variables[0].trim());
 				Vars.setTestdata(variables[1].trim());
-				break;
 			}
+			else
+				Vars.setObjProp(arith[1].trim());
 			break;
 		case Constant.Loop:
 			/*
@@ -270,7 +275,7 @@ public class TranslateEngine {
 			TestStep = TestStep.replace("Times", "");
 			try {
 				if (TestStep.contains("#")) {
-					String looptimes = Vars.getVariableDate(TestStep.substring(TestStep.indexOf("#")).trim().replace("#", ""));
+					String looptimes = Vars.getVariableData(TestStep.substring(TestStep.indexOf("#")).trim().replace("#", ""));
 					if (looptimes==null)
 						looptimes="1";
 					Vars.setObj(looptimes);
@@ -312,6 +317,7 @@ public class TranslateEngine {
 		case Constant.Launchapp:
 			/*
 			 * Open Browser “URL” Open “URL" Navigate to “URL”
+			 * Go To #URL
 			 */
 
 			// String regex =
@@ -325,7 +331,12 @@ public class TranslateEngine {
 			}
 			String actLaunchapp[] = TestStep.split(" ");
 			for (int i = 0; i < actLaunchapp.length; i++) {
-				if (IsMatch(actLaunchapp[i].replace("\"", ""), regexLaunchapp)) {
+				/*if (IsMatch(actLaunchapp[i].replace("\"", ""), regexLaunchapp)) {
+					Vars.setObjProp(actLaunchapp[i].replace("\"", ""));
+					bUrlFlag = true;
+					break;
+				}*/
+				if(actLaunchapp[i].contains("\"")){
 					Vars.setObjProp(actLaunchapp[i].replace("\"", ""));
 					bUrlFlag = true;
 					break;
@@ -835,7 +846,7 @@ public class TranslateEngine {
 					} else {
 						if (TestStep.contains("#")) {
 							Var2 = TestStep.substring(TestStep.indexOf("#"));
-							varval = Vars.getVariableDate(Var2.toLowerCase().replace("#", "").trim());
+							varval = Vars.getVariableData(Var2.toLowerCase().replace("#", "").trim());
 							Vars.setObj(varval);
 							Vars.setVariableData(Var1.replace("#", "").trim(), varval);
 							// Log.info("variable "+ Var1 +" Has been assigned a
@@ -905,10 +916,9 @@ public class TranslateEngine {
 				case Constant.Read:
 				case Constant.Store:
 					/*
-					 * get/read/store row count for table obj=tablename in
-					 * #rowcount get/read/store col/column count for table
-					 * obj=tablename in #colcount get/read/store data in
-					 * cell(text:3:4) from table obj=tablename in #celldata
+					 * get/read/store row count for table obj=tablename in #rowcount 
+					 * get/read/store col/column count for table obj=tablename in #colcount 
+					 * get/read/store data in cell(text:3:4) from table obj=tablename in #celldata
 					 * //1-text, 2-colum, 3-row
 					 */
 					TestStep = testDataReplace(TestStep, Keyword, "");
@@ -960,6 +970,9 @@ public class TranslateEngine {
 				testData = testDataMatch(TestStep);
 				Vars.setObj(testData);
 			}
+			else if(TestStep.contains("#")){
+				Vars.setObj(TestStep.substring(TestStep.indexOf("#")).trim());
+			}
 			Vars.setEvent(Keyword);
 			break;
 		case Constant.Download:
@@ -989,7 +1002,7 @@ public class TranslateEngine {
 				switch (Keyword) {
 				case Constant.GetCount:
 					// get count from dropdown obj=dropdown in #index
-					TestStep = testDataReplace(TestStep, Keyword, "");
+					TestStep = testDataReplace(TestStep, Keyword, ""); //from dropdown obj=dropdown in #index
 					Vars.setAction(KeyValue);
 					Vars.setEvent(Constant.GetCount);
 					testDatatemp = testDataReturn(TestStep);
@@ -1005,8 +1018,34 @@ public class TranslateEngine {
 						String Var = TestStep.substring(TestStep.indexOf("#")).trim();
 						Vars.setTestdata(Var);
 					}
+					break;
+				case Constant.DragDrop:
+					//drag and drop obj=divobject to "x:y"
+					//drag and drop obj=divobject to obj=pan
+					TestStep = testDataReplace(TestStep, Keyword, "");
+					Vars.setAction(KeyValue);  //Perform
+					Vars.setEvent("DragDrop"); //DragDrop
+					testDatatemp = testDataReturn(TestStep);
+					if (null != testDatatemp) {
+						Vars.setObj(testDatatemp);
+					} else
+						Vars.setObj(Constant.Div);
+					if (TestStep.contains("obj=")) {
+						Vars.setObjProp(objPropReturn(TestStep)); //divobject
+						TestStep.replace("obj="+Vars.getObjProp(), "");
+						if (TestStep.contains("\"")) {
+							testData = testDataMatch(TestStep);
+							Vars.setTestdata(testData);  //x:y
+						}
+						if(TestStep.contains("obj="))
+							Vars.setTestdata(objPropReturn(TestStep));
+					} else
+						cmnCase(Vars, TestStep);
+					break;
 				case Constant.Click:
 				case Constant.ClickOn:
+					//click on "link.test.name"
+					//action:perform, event:click, obj:checkbox, objprop:xyz.abc, testdata:on/off
 					TestStep = testDataReplace(TestStep, Keyword, "");
 					Vars.setAction(KeyValue);
 					if (TestStep.toLowerCase().contains("ok "))
@@ -1281,7 +1320,7 @@ public class TranslateEngine {
 			TestStep = TestStep.trim();
 			String actEnter[] = TestStep.split(" ");
 			Vars.setObj(actEnter[0]);
-			// if (actEnter[1] == "")
+			if (actEnter.length > 1)
 			Vars.setObjProp(actEnter[1]);
 			break;
 		case Constant.CallAction:
@@ -1335,7 +1374,7 @@ public class TranslateEngine {
 				String msg = "";
 				TestStep = testDataReplace(TestStep, Keyword, "");
 				if (TestStep.contains("#"))
-					msg = Vars.getVariableDate(TestStep.substring(TestStep.indexOf("#")).trim().replace("#", ""));
+					msg = Vars.getVariableData(TestStep.substring(TestStep.indexOf("#")).trim().replace("#", ""));
 				if (TestStep.contains("\""))
 					msg = testDataMatch(TestStep);
 				break;
@@ -1352,6 +1391,8 @@ public class TranslateEngine {
 			/*
 			 * compare file #file1 with #file2 
 			 * compare file #file1 column "name,age" with #file2 column "name,age"
+			 * compare file "C:\temp\CsvFiles\A2.csv" column "name,age,Job Title3,End Date" with "C:\temp\CsvFiles\Adhoc.csv" column "name,age,Job Title,End Date,Job Title3 contain Job Title,End Date contain End Date"
+			 * compare file #file1 column "name,age" with #file2 column "name,age" 
 			 * compare file "C:\temp\CsvFiles\A2.csv" column "name,age" with "C:\temp\CsvFiles\Adhoc.csv" column "name,age"
 			 * compare file #file1 column "Name=c:Name2 @Next Age1=v:31 @Next Age1>c:Age2"  //c-column, v-value
 			 * compare file #file1 column "Name=c:Name2"
@@ -1376,7 +1417,7 @@ public class TranslateEngine {
 			if(TestStep.contains("#") && bFlag){
 				varExtract(TestStep, Vars);
 				getStringQuote(TestStep, Vars);
-				if (TestStep.contains("\""))
+				if (TestStep.contains("\"") && Vars.getTestdata().isEmpty())
 					Vars.setTestdata(testDataMatch(TestStep));
 			}else{
 				stringInCompare(TestStep, Vars);
@@ -1402,7 +1443,7 @@ public class TranslateEngine {
 			Vars.setAction(KeyValue);
 			Vars.setEvent(Keyword);
 			if (TestStep.contains("#csvDataFile")) {
-				Vars.setObj(Constant.tempTestReportPath + Vars.getVariableDate("#csvDataFile").replace("#", ""));
+				Vars.setObj(Constant.tempTestReportPath + Vars.getVariableData("#csvDataFile").replace("#", ""));
 				ptr = Pattern.compile("\"[^\"]+[^\\s\"]\"");
 				mtr = ptr.matcher(TestStep);
 				while (mtr.find()) {
@@ -1428,6 +1469,31 @@ public class TranslateEngine {
 			Vars.setAction(KeyValue);
 			Vars.setEvent(Keyword);
 			break;
+		case Constant.SendKey:
+			//sendkey "UP", sendkey "8"
+			Vars.setAction(KeyValue);
+			Vars.setEvent(Keyword);
+			if (TestStep.contains("obj=")) {
+				Vars.setObjProp(objPropReturn(TestStep));
+			}
+			if (TestStep.contains("\""))
+				Vars.setObj(testDataMatch(TestStep));
+			break;
+		case Constant.ReplaceData:
+			//replace data "data1" with "data2" from #var1 into #var2
+			//replace data "data1" with "data2" from "abcd" into #var
+			//replace data "," with "." from "abcd,efg" into #var
+			//event=#var2, obj=data1, objprop=data2, testdata=#var1/"abcd"
+			Vars.setAction(KeyValue);
+			stringReplace(TestStep, Vars);
+			/*Vars.setEvent(Keyword);
+			if (TestStep.contains("obj=")) {
+				Vars.setObjProp(objPropReturn(TestStep));
+			}
+			if (TestStep.contains("\""))
+				Vars.setObj(testDataMatch(TestStep));*/
+			break;
+			
 		}
 
 	}
@@ -1526,7 +1592,7 @@ public class TranslateEngine {
 						dataExtract = dataExtract.replaceAll("\"", "");
 						VartoReplace = dataExtract.substring(TestStep.indexOf("#")).trim().replace("#", "");
 						dataExtract = dataExtract.replace("#", "");
-						dataExtract = dataExtract.replace(VartoReplace, Constant.Vars.getVariableDate(VartoReplace));
+						dataExtract = dataExtract.replace(VartoReplace, Constant.Vars.getVariableData(VartoReplace));
 
 					}
 				}
@@ -1539,7 +1605,7 @@ public class TranslateEngine {
 							dataExtract = dataExtract.replaceAll("#", "");
 						}
 						dataExtract = dataExtract.replace("#", "");
-						dataExtract = dataExtract.replace(VartoReplace, Constant.Vars.getVariableDate(VartoReplace));
+						dataExtract = dataExtract.replace(VartoReplace, Constant.Vars.getVariableData(VartoReplace));
 					}
 				}
 			}
@@ -1550,7 +1616,7 @@ public class TranslateEngine {
 						VartoReplace = TestStep.substring(TestStep.indexOf("#"), TestStep.indexOf(" ")).trim().replace("#", "");
 					else
 						VartoReplace = TestStep.substring(TestStep.indexOf("#")).trim().replace("#", "");
-					dataExtract = Constant.Vars.getVariableDate(VartoReplace);
+					dataExtract = Constant.Vars.getVariableData(VartoReplace);
 				}
 			}
 			return dataExtract;
@@ -1638,7 +1704,9 @@ public class TranslateEngine {
 					ObjectSetValCh = Constant.Vars.TestData.getCellData(Constant.Vars.loopcnt[Constant.Vars.loopnum]+1, column);
 					if (ObjectSetValCh.length() == 0) {
 						ObjectSetValCh = Default;
-					}  
+					}else if(ObjectSetValCh.contains("#random")){
+						ObjectSetValCh = Constant.Vars.getVariableData(ObjectSetValCh.replace("#", ""));
+					}
 					return ObjectSetValCh;
 				}
 			}
@@ -1814,6 +1882,11 @@ public class TranslateEngine {
 		return Vars;
 	}
 	
+	/**
+	 * @param TestStep
+	 * @param Vars
+	 * @return
+	 */
 	public LocalTC getStringQuote(String TestStep, LocalTC Vars){
 		Pattern pt = Pattern.compile("\"[^\"]+[^\\s\"]\"");
 		Matcher mt = pt.matcher(TestStep);
@@ -1823,6 +1896,53 @@ public class TranslateEngine {
 				Vars.setEvent(mt.group().replaceAll("\"", ""));
 			}else{
 				Vars.setTestdata(mt.group().replaceAll("\"", ""));
+			}
+		}
+		return Vars;
+	}
+	
+	/**
+	 * @param TestStep
+	 * @param Vars
+	 * @return
+	 */
+	public LocalTC stringReplace(String TestStep, LocalTC Vars) {
+		Pattern pt = Pattern.compile("\"([^\"]*)\"");
+		Matcher mt = pt.matcher(TestStep);
+		while (mt.find()) {
+			if (null == Vars.getEvent() || Vars.getEvent().isEmpty()) {
+				Vars.setEvent(mt.group().replaceAll("\"", ""));
+			} else if (null == Vars.getTestdata() || Vars.getTestdata().isEmpty()) {
+				Vars.setTestdata(mt.group().replaceAll("\"", ""));
+
+			} else if (null == Vars.getObjProp() || Vars.getObjProp().isEmpty()) {
+				Vars.setObjProp(mt.group().replaceAll("\"", ""));
+			}
+			//TestStep = TestStep.replace(mt.group().replaceAll("\"", ""), "");
+		}
+		if (TestStep.contains("#")) {
+			/*
+			 * Vars.setTestdata(Vars.getEvent()); Vars.setEvent(Vars.getObj());
+			 * Vars.setObj("");
+			 */
+			varExtractForReplace(TestStep, Vars);
+		}
+		return Vars;
+	}
+	
+	/**
+	 * @param TestStep
+	 * @param Vars
+	 * @return
+	 */
+	public LocalTC varExtractForReplace(String TestStep, LocalTC Vars) {
+		Pattern pt = Pattern.compile("#[^#\\s]*");
+		Matcher mt = pt.matcher(TestStep);
+		while (mt.find()) {
+			if (null == Vars.getObjProp() || Vars.getObjProp().isEmpty()) {
+				Vars.setObjProp(mt.group());
+			} else {
+				Vars.setObj(mt.group());
 			}
 		}
 		return Vars;

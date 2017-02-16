@@ -58,7 +58,7 @@ public class SpiraReaderTestComplete {
 	public SpiraReaderTestComplete() throws MalformedURLException {
 		super();
 		enddate = Instant.now();
-		File f = new File("C:\\Impellam.txt");
+		File f = new File(Constant.tempTestReportPath + "\\Impellam.txt");
 		if (f.exists())
 			this.proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("10.21.0.25", 8080));
 		else
